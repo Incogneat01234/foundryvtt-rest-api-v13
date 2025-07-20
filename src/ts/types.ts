@@ -12,7 +12,7 @@ export enum WSCloseCodes {
 }
 
 // Module-specific interfaces
-export interface FoundryRestApi extends Game.ModuleData<any> {
+export interface FoundryRestApi extends Module {
   socketManager: WebSocketManager | null;
   api: FoundryRestApiAPI;
 }

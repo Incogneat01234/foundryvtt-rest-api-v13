@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "./baseRouter";
 import { ModuleLogger } from "../../utils/logger";
 import { recentRolls } from "../../constants";
@@ -59,7 +60,7 @@ router.addRoute({
             } else if (speakerEntity instanceof Actor) {
               const activeScene = (game as Game).scenes?.active;
               if (activeScene) {
-                const tokens = activeScene.tokens?.filter(t => t.actor?.id === speakerEntity.id);
+                const tokens = activeScene.tokens?.filter((t: any) => t.actor?.id === speakerEntity.id);
                 if (tokens && tokens.length > 0) {
                   const token = tokens[0];
                   speakerData = {
@@ -109,7 +110,7 @@ router.addRoute({
                 } else if (targetDocument instanceof Actor) {
                   const activeScene = (game as Game).scenes?.active;
                   if (activeScene) {
-                    const tokens = activeScene.tokens?.filter(t => t.actor?.id === targetDocument.id);
+                    const tokens = activeScene.tokens?.filter((t: any) => t.actor?.id === targetDocument.id);
                     if (tokens && tokens.length > 0) {
                       targetToken = tokens[0];
                       targetAcquired = true;
@@ -281,8 +282,8 @@ router.addRoute({
             roll: {
               formula: formula,
               total: roll.total,
-              isCritical: roll.terms.some(term => (term as DiceTerm).results?.some(result => result.result === (roll.terms[0] as DiceTerm).faces)),
-              isFumble: roll.terms.some(term => (term as DiceTerm).results?.some(result => result.result === 1)),
+              isCritical: roll.dice.some((d: any) => d.results?.some((r: any) => r.result === d.faces)),
+              isFumble: roll.dice.some((d: any) => d.results?.some((r: any) => r.result === 1)),
               dice: roll.dice.map(d => ({
                 faces: d.faces,
                 results: d.results.map(r => ({

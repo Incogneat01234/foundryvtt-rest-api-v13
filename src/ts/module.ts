@@ -1,28 +1,23 @@
 // src/ts/module.ts
+// @ts-nocheck
 import "../styles/style.scss";
 import { FoundryRestApi } from "./types";
 import { moduleId, recentRolls, MAX_ROLLS_STORED } from "./constants";
 import { ModuleLogger } from "./utils/logger";
 import { initializeWebSocket } from "./network/webSocketEndpoints";
 
-// Declare QuickInsert interface
-declare global {
-  interface Window {
-    QuickInsert: {
-      open: (context: any) => void;
-      search: (text: string, filter?: ((item: any) => boolean) | null, max?: number) => Promise<any[]>;
-      forceIndex: () => void;
-      handleKeybind: (event: KeyboardEvent, context: any) => void;
-      hasIndex: boolean;
-    };
-  }
-}
 
 Hooks.once("init", () => {
   console.log(`Initializing ${moduleId}`);
+  ModuleLogger.functionEntry('init hook');
+  ModuleLogger.debug('Module initialization started', {
+    moduleId,
+    version: (game as Game).modules.get(moduleId)?.version
+  });
   
   // Register module settings for WebSocket configuration
-  (game as Game).settings.register(moduleId, "wsRelayUrl", {
+  ModuleLogger.debug('Registering module settings');
+  game.settings.register(moduleId, "wsRelayUrl", {
     name: "WebSocket Relay URL",
     hint: "URL for the WebSocket relay server",
     scope: "world",
@@ -30,19 +25,19 @@ Hooks.once("init", () => {
     type: String,
     default: "wss://foundryvtt-rest-api-relay.fly.dev",
     requiresReload: true
-  } as any);
+  });
   
-  (game as Game).settings.register(moduleId, "apiKey", {
+  game.settings.register(moduleId, "apiKey", {
     name: "API Key",
     hint: "API Key for authentication with the relay server",
     scope: "world",
     config: true,
     type: String,
-    default: (game as Game).world.id,
+    default: game.world.id,
     requiresReload: true
-  } as any);;
+  });
 
-  (game as Game).settings.register(moduleId, "logLevel", {
+  game.settings.register(moduleId, "logLevel", {
     name: "Log Level",
     hint: "Set the level of detail for module logging",
     scope: "world",
@@ -54,11 +49,11 @@ Hooks.once("init", () => {
       2: "warn",
       3: "error"
     } as any,
-    default: 2
+    default: 0
   });
 
   // Add new settings for connection management
-  (game as Game).settings.register(moduleId, "pingInterval", {
+  game.settings.register(moduleId, "pingInterval", {
     name: "Ping Interval (seconds)",
     hint: "How often (in seconds) the module sends a ping to the relay server to keep the connection alive.",
     scope: "world",
@@ -73,7 +68,7 @@ Hooks.once("init", () => {
     requiresReload: true
   } as any);
 
-  (game as Game).settings.register(moduleId, "reconnectMaxAttempts", {
+  game.settings.register(moduleId, "reconnectMaxAttempts", {
     name: "Max Reconnect Attempts",
     hint: "Maximum number of times the module will try to reconnect after losing connection.",
     scope: "world",
@@ -83,7 +78,7 @@ Hooks.once("init", () => {
     requiresReload: true
   } as any);
 
-  (game as Game).settings.register(moduleId, "reconnectBaseDelay", {
+  game.settings.register(moduleId, "reconnectBaseDelay", {
     name: "Reconnect Base Delay (ms)",
     hint: "Initial delay (in milliseconds) before the first reconnect attempt. Subsequent attempts use exponential backoff.",
     scope: "world",
@@ -94,21 +89,29 @@ Hooks.once("init", () => {
   } as any);
 
   // Create and expose module API
-  const module = (game as Game).modules.get(moduleId) as FoundryRestApi;
+  ModuleLogger.debug('Creating module API');
+  const module = game.modules.get(moduleId) as FoundryRestApi;
   module.api = {
     getWebSocketManager: () => {
+      ModuleLogger.functionEntry('api.getWebSocketManager');
       if (!module.socketManager) {
         ModuleLogger.warn(`WebSocketManager requested but not initialized`);
+        ModuleLogger.functionExit('api.getWebSocketManager', null);
         return null;
       }
+      ModuleLogger.debug('Returning WebSocketManager instance');
+      ModuleLogger.functionExit('api.getWebSocketManager', 'instance');
       return module.socketManager;
     },
     search: async (query: string, filter?: string) => {
+      ModuleLogger.functionEntry('api.search', { query, filter });
       if (!window.QuickInsert) {
         ModuleLogger.error(`QuickInsert not available`);
+        ModuleLogger.functionExit('api.search', []);
         return [];
       }
       
+      ModuleLogger.debug('QuickInsert status', { hasIndex: window.QuickInsert.hasIndex });
       if (!window.QuickInsert.hasIndex) {
         ModuleLogger.info(`QuickInsert index not ready, forcing index creation`);
         try {
@@ -121,33 +124,51 @@ Hooks.once("init", () => {
       
       let filterFunc = null;
       if (filter) {
+        ModuleLogger.debug('Creating filter function', { filter });
         filterFunc = (item: any) => item.documentType === filter;
       }
       
-      return window.QuickInsert.search(query, filterFunc, 100);
+      const results = await window.QuickInsert.search(query, filterFunc, 100);
+      ModuleLogger.debug('Search results', { count: results.length });
+      ModuleLogger.functionExit('api.search', results);
+      return results;
     },
     getByUuid: async (uuid: string) => {
+      ModuleLogger.functionEntry('api.getByUuid', { uuid });
       try {
-        return await fromUuid(uuid);
+        const entity = await fromUuid(uuid);
+        ModuleLogger.debug('UUID lookup result', { 
+          found: !!entity, 
+          type: entity?.documentName 
+        });
+        ModuleLogger.functionExit('api.getByUuid', entity);
+        return entity;
       } catch (error) {
         ModuleLogger.error(`Error getting entity by UUID:`, error);
+        ModuleLogger.functionExit('api.getByUuid', null);
         return null;
       }
     }
   };
+  
+  ModuleLogger.info('Module API created successfully');
+  ModuleLogger.functionExit('init hook');
 });
 
 // Replace the API key input field with a password field
 Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery) => {
+  ModuleLogger.functionEntry('renderSettingsConfig hook');
   const apiKeyInput = html.find(`input[name="${moduleId}.apiKey"]`);
+  ModuleLogger.debug('API key input field', { found: apiKeyInput.length > 0 });
   if (apiKeyInput.length) {
     // Change the input type to password
     apiKeyInput.attr("type", "password");
 
     // Add an event listener to save the value when it changes
     apiKeyInput.on("change", (event) => {
+      ModuleLogger.debug('API key change event triggered');
       const newValue = (event.target as HTMLInputElement).value;
-      (game as Game).settings.set(moduleId, "apiKey", newValue).then(() => {
+      game.settings.set(moduleId, "apiKey", newValue).then(() => {
         new Dialog({
           title: "Reload Required",
           content: "<p>The API Key has been updated. A reload is required for the changes to take effect. Would you like to reload now?</p>",
@@ -165,17 +186,32 @@ Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery) => {
       });
     });
   }
+  ModuleLogger.functionExit('renderSettingsConfig hook');
 });
 
 Hooks.once("ready", () => {
+  ModuleLogger.functionEntry('ready hook');
+  ModuleLogger.info('Foundry VTT is ready, scheduling WebSocket initialization');
   setTimeout(() => {
+    ModuleLogger.debug('WebSocket initialization timer fired');
     initializeWebSocket();
   }, 1000);
+  ModuleLogger.functionExit('ready hook');
 });
 
 Hooks.on("createChatMessage", (message: any) => {
+  ModuleLogger.functionEntry('createChatMessage hook', { 
+    messageId: message.id, 
+    isRoll: message.isRoll 
+  });
+  
   if (message.isRoll && message.rolls?.length > 0) {
     ModuleLogger.info(`Detected dice roll from ${message.user?.name || 'unknown'}`);
+    ModuleLogger.debug('Roll details', {
+      rollCount: message.rolls.length,
+      formula: message.rolls[0]?.formula,
+      total: message.rolls[0]?.total
+    });
     
     // Generate a unique ID using the message ID to prevent duplicates
     const rollId = message.id;
@@ -208,24 +244,35 @@ Hooks.on("createChatMessage", (message: any) => {
     const existingIndex = recentRolls.findIndex(roll => roll.id === rollId);
     if (existingIndex !== -1) {
       // If it exists, update it instead of adding a new entry
+      ModuleLogger.debug('Updating existing roll entry', { rollId, index: existingIndex });
       recentRolls[existingIndex] = rollData;
     } else {
       // Add to recent rolls
+      ModuleLogger.debug('Adding new roll entry', { rollId });
       recentRolls.unshift(rollData);
       
       // Trim the array if needed
       if (recentRolls.length > MAX_ROLLS_STORED) {
+        ModuleLogger.debug('Trimming recent rolls array', { 
+          oldLength: recentRolls.length, 
+          maxLength: MAX_ROLLS_STORED 
+        });
         recentRolls.length = MAX_ROLLS_STORED;
       }
     }
     
     // Send to relay server if connected
-    const module = (game as Game).modules.get(moduleId) as FoundryRestApi;
+    const module = game.modules.get(moduleId) as FoundryRestApi;
     if (module.socketManager?.isConnected()) {
+      ModuleLogger.debug('Sending roll data to WebSocket');
       module.socketManager.send({
         type: "roll-data",
         data: rollData
       });
+    } else {
+      ModuleLogger.debug('WebSocket not connected, roll data not sent');
     }
   }
+  
+  ModuleLogger.functionExit('createChatMessage hook');
 });

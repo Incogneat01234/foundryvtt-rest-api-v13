@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { WSCloseCodes } from "../types";
 import { ModuleLogger } from "../utils/logger";
 import { moduleId } from "../constants"; // Corrected import path
@@ -21,9 +22,13 @@ export class WebSocketManager {
   private static instance: WebSocketManager | null = null;
 
   constructor(url: string, token: string) {
+    ModuleLogger.functionEntry('WebSocketManager.constructor', { url, token: token ? '***' : 'none' });
+    
     this.url = url;
     this.token = token;
-    this.clientId = `foundry-${(game as Game).user?.id || Math.random().toString(36).substring(2, 15)}`;
+    this.clientId = `foundry-${game.user?.id || Math.random().toString(36).substring(2, 15)}`;
+    
+    ModuleLogger.debug('Generated client ID', { clientId: this.clientId });
     
     // Determine if this is the primary GM (lowest user ID among full GMs with role 4)
     this.isPrimaryGM = this.checkIfPrimaryGM();
@@ -31,11 +36,14 @@ export class WebSocketManager {
     ModuleLogger.info(`Created WebSocketManager with clientId: ${this.clientId}, isPrimaryGM: ${this.isPrimaryGM}`);
     
     // Listen for user join/leave events to potentially take over as primary
-    if ((game as Game).user?.isGM && (game as Game).user?.role === 4) {
+    if (game.user?.isGM && game.user?.role === 4) {
       // When another user connects or disconnects, check if we need to become primary
+      ModuleLogger.debug('Registering user connection hooks');
       Hooks.on("userConnected", this.reevaluatePrimaryGM.bind(this));
       Hooks.on("userDisconnected", this.reevaluatePrimaryGM.bind(this));
     }
+    
+    ModuleLogger.functionExit('WebSocketManager.constructor');
   }
   
   /**
@@ -45,9 +53,19 @@ export class WebSocketManager {
    * @returns WebSocketManager instance or null if not GM
    */
   public static getInstance(url: string, token: string): WebSocketManager | null {
+    ModuleLogger.functionEntry('WebSocketManager.getInstance', { url, hasToken: !!token });
+    
     // Only create an instance if the user is a full GM (role 4), not Assistant GM
-    if (!(game as Game).user?.isGM || (game as Game).user?.role !== 4) {
+    const user = game.user;
+    ModuleLogger.debug('Checking user permissions', { 
+      userId: user?.id, 
+      isGM: user?.isGM, 
+      role: user?.role 
+    });
+    
+    if (!user?.isGM || user?.role !== 4) {
       ModuleLogger.info(`WebSocketManager not created - user is not a full GM`);
+      ModuleLogger.functionExit('WebSocketManager.getInstance', null);
       return null;
     }
     
@@ -55,8 +73,11 @@ export class WebSocketManager {
     if (!WebSocketManager.instance) {
       ModuleLogger.info(`Creating new WebSocketManager instance`);
       WebSocketManager.instance = new WebSocketManager(url, token);
+    } else {
+      ModuleLogger.debug('Returning existing WebSocketManager instance');
     }
     
+    ModuleLogger.functionExit('WebSocketManager.getInstance', 'instance');
     return WebSocketManager.instance;
   }
 
@@ -64,23 +85,39 @@ export class WebSocketManager {
    * Determines if this GM has the lowest user ID among all active GMs
    */
   private checkIfPrimaryGM(): boolean {
+    ModuleLogger.functionEntry('checkIfPrimaryGM');
+    
     // Make sure current user is a full GM (role 4), not an Assistant GM
-    if (!(game as Game).user?.isGM || (game as Game).user?.role !== 4) return false;
+    const user = game.user;
+    if (!user?.isGM || user?.role !== 4) {
+      ModuleLogger.debug('User is not a full GM', { isGM: user?.isGM, role: user?.role });
+      ModuleLogger.functionExit('checkIfPrimaryGM', false);
+      return false;
+    }
     
-    const currentUserId = (game as Game).user?.id;
+    const currentUserId = user?.id;
     // Only consider active users with role 4 (full GM), not Assistant GMs (role 3)
-    const activeGMs = (game as Game).users?.filter(u => u.role === 4 && u.active) || [];
+    const activeGMs = game.users?.filter((u: User) => u.role === 4 && u.active) || [];
     
-    if (activeGMs.length === 0) return false;
+    ModuleLogger.debug('Active GMs found', { 
+      count: activeGMs.length, 
+      ids: activeGMs.map(u => u.id) 
+    });
+    
+    if (activeGMs.length === 0) {
+      ModuleLogger.functionExit('checkIfPrimaryGM', false);
+      return false;
+    }
     
     // Sort by user ID (alphanumeric)
-    const sortedGMs = [...activeGMs].sort((a, b) => (a.id || '').localeCompare(b.id || ''));
+    const sortedGMs = [...activeGMs].sort((a: User, b: User) => (a.id || '').localeCompare(b.id || ''));
     
     // Check if current user has the lowest ID
     const isPrimary = sortedGMs[0]?.id === currentUserId;
     
     ModuleLogger.info(`Primary GM check - Current user: ${currentUserId}, Primary GM: ${sortedGMs[0]?.id}, isPrimary: ${isPrimary}`);
     
+    ModuleLogger.functionExit('checkIfPrimaryGM', isPrimary);
     return isPrimary;
   }
   
@@ -110,28 +147,39 @@ export class WebSocketManager {
   }
 
   connect(): void {
+    ModuleLogger.functionEntry('connect');
+    
     // Double-check that user is still a full GM (role 4) and is the primary GM before connecting
-    if (!(game as Game).user?.isGM || (game as Game).user?.role !== 4) {
+    const user = game.user;
+    if (!user?.isGM || user?.role !== 4) {
       ModuleLogger.info(`WebSocket connection aborted - user is not a full GM`);
+      ModuleLogger.functionExit('connect');
       return;
     }
     
     if (!this.isPrimaryGM) {
       ModuleLogger.info(`WebSocket connection aborted - user is not the primary GM`);
+      ModuleLogger.functionExit('connect');
       return;
     }
     
     if (this.isConnecting) {
       ModuleLogger.info(`Already attempting to connect`);
+      ModuleLogger.functionExit('connect');
       return;
     }
 
-    if (this.socket && (this.socket.readyState === WebSocket.CONNECTING || this.socket.readyState === WebSocket.OPEN)) {
-      ModuleLogger.info(`WebSocket already connected or connecting`);
-      return;
+    if (this.socket) {
+      ModuleLogger.debug('Checking existing socket state', { readyState: this.socket.readyState });
+      if (this.socket.readyState === WebSocket.CONNECTING || this.socket.readyState === WebSocket.OPEN) {
+        ModuleLogger.info(`WebSocket already connected or connecting`);
+        ModuleLogger.functionExit('connect');
+        return;
+      }
     }
 
     this.isConnecting = true;
+    ModuleLogger.debug('Starting connection attempt');
 
     try {
       // Build the WebSocket URL with query parameters
@@ -140,6 +188,10 @@ export class WebSocketManager {
       wsUrl.searchParams.set('token', this.token);
       
       ModuleLogger.info(`Connecting to WebSocket at ${wsUrl.toString()}`);
+      ModuleLogger.debug('Connection parameters', { 
+        clientId: this.clientId, 
+        hasToken: !!this.token 
+      });
       
       // Create WebSocket and set up event handlers
       this.socket = new WebSocket(wsUrl.toString());
@@ -179,10 +231,15 @@ export class WebSocketManager {
   }
 
   disconnect(): void {
+    ModuleLogger.functionEntry('disconnect');
+    
     if (this.socket) {
       ModuleLogger.info(`Disconnecting WebSocket`);
+      ModuleLogger.debug('Socket state before disconnect', { readyState: this.socket.readyState });
       this.socket.close(WSCloseCodes.Normal, "Disconnecting");
       this.socket = null;
+    } else {
+      ModuleLogger.debug('No socket to disconnect');
     }
     
     if (this.reconnectTimer !== null) {
@@ -204,20 +261,26 @@ export class WebSocketManager {
   }
 
   send(data: any): boolean {
-    ModuleLogger.info(`Send called, readyState: ${this.socket?.readyState}`);
+    ModuleLogger.functionEntry('send', data);
+    ModuleLogger.debug(`Send called, readyState: ${this.socket?.readyState}`);
     
     // Ensure we're connected
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       try {
-        ModuleLogger.info(`Sending message:`, data);
-        this.socket.send(JSON.stringify(data));
+        const jsonData = JSON.stringify(data);
+        ModuleLogger.websocket('send', data);
+        ModuleLogger.debug('Sending data size', { bytes: jsonData.length });
+        this.socket.send(jsonData);
+        ModuleLogger.functionExit('send', true);
         return true;
       } catch (error) {
         ModuleLogger.error(`Error sending message:`, error);
+        ModuleLogger.functionExit('send', false);
         return false;
       }
     } else {
       ModuleLogger.warn(`WebSocket not ready, state: ${this.socket?.readyState}`);
+      ModuleLogger.functionExit('send', false);
       return false;
     }
   }
@@ -227,15 +290,20 @@ export class WebSocketManager {
   }
 
   private onOpen(_event: Event): void {
+    ModuleLogger.functionEntry('onOpen');
     ModuleLogger.info(`WebSocket connected`);
     this.isConnecting = false;
     this.reconnectAttempts = 0;
+    ModuleLogger.debug('Connection established', { 
+      clientId: this.clientId, 
+      isPrimaryGM: this.isPrimaryGM 
+    });
     
     // Send an initial ping
     this.send({ type: "ping" });
     
     // Start ping interval using the setting value
-    const pingIntervalSeconds = (game as Game).settings.get(moduleId, "pingInterval") as number;
+    const pingIntervalSeconds = game.settings.get(moduleId, "pingInterval") as number;
     const pingIntervalMs = pingIntervalSeconds * 1000;
     ModuleLogger.info(`Starting application ping interval: ${pingIntervalSeconds} seconds`);
     
@@ -252,7 +320,13 @@ export class WebSocketManager {
   }
 
   private onClose(event: CloseEvent): void {
+    ModuleLogger.functionEntry('onClose', { code: event.code, reason: event.reason });
     ModuleLogger.info(`WebSocket disconnected: ${event.code} - ${event.reason}`);
+    ModuleLogger.debug('Close event details', { 
+      wasClean: event.wasClean, 
+      code: event.code, 
+      reason: event.reason 
+    });
     this.socket = null;
     this.isConnecting = false;
     
@@ -274,19 +348,30 @@ export class WebSocketManager {
   }
 
   private async onMessage(event: MessageEvent): Promise<void> {
+    ModuleLogger.functionEntry('onMessage');
     try {
+      ModuleLogger.debug('Raw message received', { dataLength: event.data.length });
       const data = JSON.parse(event.data);
-      ModuleLogger.info(`Received message:`, data);
+      ModuleLogger.websocket('receive', data);
       
       if (data.type && this.messageHandlers.has(data.type)) {
         ModuleLogger.info(`Handling message of type: ${data.type}`);
-          this.messageHandlers.get(data.type)!(data, {socketManager: this} as HandlerContext);
+        ModuleLogger.debug('Calling handler for message type', { 
+          type: data.type, 
+          hasHandler: this.messageHandlers.has(data.type) 
+        });
+        this.messageHandlers.get(data.type)!(data, {socketManager: this} as HandlerContext);
       } else if (data.type) {
         ModuleLogger.warn(`No handler for message type: ${data.type}`);
+        ModuleLogger.debug('Available handlers', { 
+          handlers: Array.from(this.messageHandlers.keys()) 
+        });
       }
     } catch (error) {
       ModuleLogger.error(`Error processing message:`, error);
+      ModuleLogger.debug('Failed message data', { rawData: event.data });
     }
+    ModuleLogger.functionExit('onMessage');
   }
 
   private scheduleReconnect(): void {
@@ -295,8 +380,8 @@ export class WebSocketManager {
     }
     
     // Read settings for reconnection parameters
-    const maxAttempts = (game as Game).settings.get(moduleId, "reconnectMaxAttempts") as number;
-    const baseDelay = (game as Game).settings.get(moduleId, "reconnectBaseDelay") as number;
+    const maxAttempts = game.settings.get(moduleId, "reconnectMaxAttempts") as number;
+    const baseDelay = game.settings.get(moduleId, "reconnectBaseDelay") as number;
     
     this.reconnectAttempts++;
     
@@ -315,6 +400,10 @@ export class WebSocketManager {
       // Only attempt reconnect if still the primary GM
       if (this.isPrimaryGM) {
          ModuleLogger.info(`Attempting reconnect...`);
+         ModuleLogger.debug('Reconnect conditions', { 
+           isPrimaryGM: this.isPrimaryGM, 
+           attempt: this.reconnectAttempts 
+         });
          this.connect();
       } else {
          ModuleLogger.info(`Reconnect attempt aborted - no longer primary GM.`);

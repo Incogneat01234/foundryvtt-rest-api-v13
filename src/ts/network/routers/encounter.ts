@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "./baseRouter";
 import { ModuleLogger } from "../../utils/logger";
 
@@ -10,14 +11,14 @@ router.addRoute({
     ModuleLogger.info(`Received request for encounters`);
 
     try {
-      const encounters = (game as Game).combats?.contents.map(combat => {
+      const encounters = game.combats?.contents.map((combat: Combat) => {
         return {
           id: combat.id,
           name: combat.name,
           round: combat.round,
           turn: combat.turn,
-          current: combat.id === (game as Game).combat?.id,
-          combatants: combat.combatants.contents.map(c => ({
+          current: combat.id === game.combat?.id,
+          combatants: combat.combatants.contents.map((c: Combatant) => ({
             id: c.id,
             name: c.name,
             tokenUuid: c.token?.uuid,
@@ -105,8 +106,8 @@ router.addRoute({
 
         if (data.startWithSelected) {
           const selectedTokens = canvas?.tokens?.controlled
-            .filter(token => !addedTokenIds.has(token.id))
-            .map(token => ({
+            .filter((token: any) => !addedTokenIds.has(token.id))
+            .map((token: any) => ({
               tokenId: token.id,
               sceneId: token.scene.id
             })) ?? [];

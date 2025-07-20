@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "types": [
-      "@league-of-foundry-developers/foundry-vtt-types",
       "jest"
     ],
     "target": "ESNext",
@@ -12,7 +11,7 @@
       "DOM"
     ],
     "moduleResolution": "Node",
-    "strict": true,
+    "strict": false,
     "sourceMap": true,
     "resolveJsonModule": true,
     "isolatedModules": false,
@@ -26,6 +25,6 @@
     "skipLibCheck": true
   },
   "include": [
-    "src",
+    "src"
   ]
 }

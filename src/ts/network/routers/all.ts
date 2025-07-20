@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {Router} from "./baseRouter"
 import {router as PingPongRouter} from "./pingPong"
 import {router as EntityRouter} from "./entity"

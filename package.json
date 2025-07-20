@@ -8,13 +8,22 @@
   "scripts": {
     "build": "tsc && vite build",
     "dev": "tsc && vite build --watch",
-    "test": "jest"
+    "test": "jest",
+    "install:windows": "powershell.exe -ExecutionPolicy Bypass -File install.ps1",
+    "install:windows:dev": "powershell.exe -ExecutionPolicy Bypass -File install.ps1 -Symlink",
+    "install:unix": "./install.sh",
+    "install:unix:dev": "./install.sh --symlink",
+    "clean": "rimraf dist",
+    "clean:all": "rimraf dist node_modules package-lock.json",
+    "package": "node build-release.js",
+    "release": "node create-release.js"
   },
   "devDependencies": {
-    "@league-of-foundry-developers/foundry-vtt-types": "^9.280.0",
+    "@league-of-foundry-developers/foundry-vtt-types": "^13.346.0-beta.20250720141111",
     "@types/file-saver": "^2.0.7",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.9",
+    "archiver": "^7.0.1",
     "jest": "^30.0.0",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-scss": "^3.0.0",

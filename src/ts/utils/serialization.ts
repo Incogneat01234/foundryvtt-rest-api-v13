@@ -18,15 +18,29 @@ interface FoundryCollection<T> {
  * @returns A fully serialized copy of the entity
  */
 export function deepSerializeEntity(entity: any): any {
-    if (!entity) return null;
+    ModuleLogger.functionEntry('deepSerializeEntity', { 
+        entityType: entity?.documentName || entity?.constructor?.name 
+    });
+    
+    if (!entity) {
+        ModuleLogger.debug('Entity is null or undefined');
+        ModuleLogger.functionExit('deepSerializeEntity', null);
+        return null;
+    }
     
     try {
+        ModuleLogger.debug('Starting entity serialization', {
+            hasToObject: typeof entity.toObject === 'function',
+            hasSystem: !!entity.system
+        });
         // Start with a standard serialization
         let serialized = entity.toObject ? entity.toObject(true) : JSON.parse(JSON.stringify(entity));
+        ModuleLogger.debug('Initial serialization complete');
 
         // Some systems have getter properties that aren't properly serialized, especially in nested objects
         // Manually handle key system paths that are commonly used
         if (entity.system) {
+            ModuleLogger.debug('Processing system data for deep serialization');
             // Handle attributes - commonly used in systems like dnd5e
             if (entity.system.attributes) {
                 for (const [attrKey, attrValue] of Object.entries(entity.system.attributes)) {
@@ -85,6 +99,7 @@ export function deepSerializeEntity(entity: any): any {
 
         // Special handling for embedded collections 
         if (entity.items && entity.items.size > 0 && Array.isArray(serialized.items)) {
+            ModuleLogger.debug('Processing embedded items collection', { size: entity.items.size });
             // Ensure items are properly serialized
             try {
                 // Type assertion to help TypeScript understand the collection structure
@@ -116,6 +131,7 @@ export function deepSerializeEntity(entity: any): any {
         
         // Handle effects collection
         if (entity.effects && entity.effects.size > 0 && Array.isArray(serialized.effects)) {
+            ModuleLogger.debug('Processing embedded effects collection', { size: entity.effects.size });
             try {
                 // Type assertion to help TypeScript understand the collection structure
                 const effectCollection = entity.effects as FoundryCollection<any>;
@@ -144,10 +160,17 @@ export function deepSerializeEntity(entity: any): any {
             }
         }
         
+        ModuleLogger.debug('Serialization complete', {
+            serializedKeys: Object.keys(serialized || {})
+        });
+        ModuleLogger.functionExit('deepSerializeEntity', 'success');
         return serialized;
     } catch (error) {
         ModuleLogger.error(`Error deep serializing entity:`, error);
+        ModuleLogger.debug('Falling back to basic serialization');
         // Fallback to basic serialization in case of errors
-        return entity.toObject ? entity.toObject() : entity;
+        const fallback = entity.toObject ? entity.toObject() : entity;
+        ModuleLogger.functionExit('deepSerializeEntity', 'fallback');
+        return fallback;
     }
 }

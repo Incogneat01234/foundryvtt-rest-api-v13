@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:foundryvtt.com)",
+      "Bash(npm view:*)",
+      "Bash(chmod:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(ls:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(mv:*)",
+      "Bash(npm run:*)",
+      "Bash(CI=true npm run build)",
+      "Bash(unzip:*)",
+      "Bash(git remote get-url:*)"
+    ],
+    "deny": []
+  }
+}

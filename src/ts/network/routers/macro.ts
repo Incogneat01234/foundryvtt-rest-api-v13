@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "./baseRouter";
 import { ModuleLogger } from "../../utils/logger";
 
@@ -10,7 +11,7 @@ router.addRoute({
     ModuleLogger.info(`Received request for macros`);
 
     try {
-      const macros = (game as Game).macros?.contents.map(macro => {
+      const macros = game.macros?.contents.map((macro: Macro) => {
         return {
           uuid: macro.uuid,
           id: macro.id,

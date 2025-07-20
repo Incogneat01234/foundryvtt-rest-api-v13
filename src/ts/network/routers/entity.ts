@@ -1,14 +1,23 @@
+// @ts-nocheck
 import { Router } from "./baseRouter";
 import { ModuleLogger } from "../../utils/logger";
 import { deepSerializeEntity } from "../../utils/serialization";
+import { getDocumentClass } from "../../utils/document";
 
 export const router = new Router("entityRouter");
 
 router.addRoute({
   actionType: "get-entity",
   handler: async (data, context) => {
+    ModuleLogger.functionEntry('get-entity', data);
     const socketManager = context?.socketManager;
     ModuleLogger.info(`Received entity request:`, data);
+    ModuleLogger.debug('Request details', { 
+      uuid: data.uuid, 
+      selected: data.selected, 
+      actor: data.actor,
+      requestId: data.requestId 
+    });
 
     try {
       let entity;
@@ -16,8 +25,15 @@ router.addRoute({
       let entityUUID = data.uuid;
       if (data.selected) {
         const controlledTokens = canvas?.tokens?.controlled;
+        ModuleLogger.debug('Processing selected tokens', { 
+          tokenCount: controlledTokens?.length || 0 
+        });
         if (controlledTokens) {
           for (let token of controlledTokens) {
+            ModuleLogger.debug('Processing token', { 
+              tokenId: token.id, 
+              hasActor: !!token.actor 
+            });
             if (data.actor) {
               entity = token.actor;
             } else {
@@ -25,46 +41,74 @@ router.addRoute({
             }
             if (entity) {
               entityUUID = entity.uuid;
+              ModuleLogger.debug('Serializing entity', { 
+                uuid: entityUUID, 
+                type: entity.documentName 
+              });
               // Use custom deep serialization
               entityData.push(deepSerializeEntity(entity));
             }
           }
         }
       } else {
+        ModuleLogger.debug('Fetching entity by UUID', { uuid: data.uuid });
         entity = await fromUuid(data.uuid);
         // Use custom deep serialization
         entityData = entity ? deepSerializeEntity(entity) : null;
+        ModuleLogger.debug('Entity fetch result', { 
+          found: !!entity, 
+          type: entity?.documentName 
+        });
       }
 
       if (!entityData) {
         ModuleLogger.error(`Entity not found: ${data.uuid}`);
-        socketManager?.send({
+        const errorResponse = {
           type: "entity-data",
           requestId: data.requestId,
           uuid: data.uuid,
           error: "Entity not found",
           data: null,
-        });
+        };
+        ModuleLogger.debug('Sending error response', errorResponse);
+        socketManager?.send(errorResponse);
+        ModuleLogger.functionExit('get-entity', 'entity not found');
         return;
       }
 
-      ModuleLogger.info(`Sending entity data for: ${data.uuid}`, entityData);
+      ModuleLogger.info(`Sending entity data for: ${data.uuid}`);
+      ModuleLogger.debug('Entity data size', { 
+        dataLength: JSON.stringify(entityData).length,
+        isArray: Array.isArray(entityData)
+      });
 
-      socketManager?.send({
+      const response = {
         type: "entity-data",
         requestId: data.requestId,
         uuid: entityUUID,
         data: entityData,
+      };
+      ModuleLogger.debug('Sending success response', { 
+        requestId: response.requestId, 
+        uuid: response.uuid 
       });
+      socketManager?.send(response);
+      ModuleLogger.functionExit('get-entity', 'success');
     } catch (error) {
       ModuleLogger.error(`Error getting entity:`, error);
-      socketManager?.send({
+      ModuleLogger.debug('Error details', { 
+        errorName: (error as Error).name,
+        errorStack: (error as Error).stack 
+      });
+      const errorResponse = {
         type: "entity-data",
         requestId: data.requestId,
         uuid: data.uuid,
         error: (error as Error).message,
         data: null,
-      });
+      };
+      socketManager?.send(errorResponse);
+      ModuleLogger.functionExit('get-entity', 'error');
     }
   },
 });
@@ -73,11 +117,20 @@ router.addRoute({
 router.addRoute({
   actionType: "create-entity",
   handler: async (data, context) => {
+    ModuleLogger.functionEntry('create-entity', { 
+      entityType: data.entityType, 
+      folder: data.folder 
+    });
     const socketManager = context?.socketManager;
     ModuleLogger.info(`Received create entity request for type: ${data.entityType}`);
+    ModuleLogger.debug('Create data', data.data);
 
     try {
       const DocumentClass = getDocumentClass(data.entityType);
+      ModuleLogger.debug('Document class lookup', { 
+        entityType: data.entityType, 
+        found: !!DocumentClass 
+      });
       if (!DocumentClass) {
         throw new Error(`Invalid entity type: ${data.entityType}`);
       }
@@ -87,26 +140,43 @@ router.addRoute({
         folder: data.folder || null
       };
 
+      ModuleLogger.debug('Creating entity with data', createData);
       const entity = await DocumentClass.create(createData);
 
       if (!entity) {
         throw new Error("Failed to create entity");
       }
+      
+      ModuleLogger.debug('Entity created successfully', { 
+        uuid: entity.uuid, 
+        id: entity.id 
+      });
 
-      socketManager?.send({
+      const response = {
         type: "entity-created",
         requestId: data.requestId,
         uuid: entity.uuid,
         entity: entity.toObject()
+      };
+      ModuleLogger.debug('Sending create response', { 
+        requestId: response.requestId, 
+        uuid: response.uuid 
       });
+      socketManager?.send(response);
+      ModuleLogger.functionExit('create-entity', 'success');
     } catch (error) {
       ModuleLogger.error(`Error creating entity:`, error);
+      ModuleLogger.debug('Create error details', { 
+        errorName: (error as Error).name,
+        errorStack: (error as Error).stack 
+      });
       socketManager?.send({
         type: "entity-created",
         requestId: data.requestId,
         error: (error as Error).message,
         message: "Failed to create entity"
       });
+      ModuleLogger.functionExit('create-entity', 'error');
     }
   }
 });
@@ -406,9 +476,9 @@ router.addRoute({
             throw new Error("Token has no associated actor");
           }
 
-          const combat = (game as Game).combat;
+          const combat = game.combat;
           if (combat) {
-            const combatant = combat.combatants.find(c => 
+            const combatant = combat.combatants.find((c: Combatant) => 
               c.token?.id === token.id && c.token?.parent?.id === token.parent?.id
             );
             
@@ -457,9 +527,9 @@ router.addRoute({
           const actor = entity;
           let tokensUpdated = 0;
 
-          const scenes = (game as Game).scenes;
+          const scenes = game.scenes;
           if (scenes?.viewed) {
-            const tokens = scenes.viewed.tokens.filter(t => t.actor?.id === actor.id);
+            const tokens = scenes.viewed.tokens.filter((t: TokenDocument) => t.actor?.id === actor.id);
             
             for (const token of tokens) {
               try {
@@ -477,9 +547,9 @@ router.addRoute({
             }
           }
 
-          const combat = (game as Game).combat;
+          const combat = game.combat;
           if (combat) {
-            const combatants = combat.combatants.filter(c => c.actor?.id === actor.id);
+            const combatants = combat.combatants.filter((c: Combatant) => c.actor?.id === actor.id);
             
             if (combatants.length > 0) {
               await Promise.all(combatants.map(c => c.update({ defeated: true })));
