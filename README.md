@@ -1,6 +1,6 @@
 ### How to use Foundry REST API:
 
-- Install the Founndry VTT module using the latest manifest link: [https://github.com/ThreeHats/foundryvtt-rest-api/releases/latest/download/module.json](https://github.com/ThreeHats/foundryvtt-rest-api/releases/latest/download/module.json)
+- Install the Foundry VTT module using the latest manifest link: [https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json](https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json)
     
 - Get an API key for the public relay server at [https://foundryvtt-rest-api-relay.fly.dev/](https://foundryvtt-rest-api-relay.fly.dev/)
     

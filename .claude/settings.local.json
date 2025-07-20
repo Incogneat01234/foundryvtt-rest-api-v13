@@ -12,7 +12,8 @@
       "Bash(npm run:*)",
       "Bash(CI=true npm run build)",
       "Bash(unzip:*)",
-      "Bash(git remote get-url:*)"
+      "Bash(git remote get-url:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
