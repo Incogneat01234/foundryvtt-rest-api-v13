@@ -88,6 +88,17 @@ Hooks.once("init", () => {
     requiresReload: true
   } as any);
 
+  // Add a dummy setting for the test connection button
+  game.settings.register(moduleId, "testConnection", {
+    name: "Test Connection",
+    hint: "Click the button to test the WebSocket connection to the relay server",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "",
+    requiresReload: false
+  });
+
   // Create and expose module API
   ModuleLogger.debug('Creating module API');
   const module = game.modules.get(moduleId) as FoundryRestApi;
@@ -166,8 +177,28 @@ Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery | HTMLElement)
     const apiKeyInput = $html.find(`input[name="${moduleId}.apiKey"]`);
     ModuleLogger.debug('API key input field', { found: apiKeyInput.length > 0 });
     if (apiKeyInput.length) {
-    // Change the input type to password
-    apiKeyInput.attr("type", "password");
+      // Change the input type to password
+      apiKeyInput.attr("type", "password");
+      
+      // Add a toggle button to show/hide the API key
+      const toggleButton = $(`<button type="button" class="api-key-toggle" style="margin-left: 5px;">
+        <i class="fas fa-eye"></i>
+      </button>`);
+      
+      apiKeyInput.after(toggleButton);
+      
+      // Toggle password visibility
+      toggleButton.on("click", (e) => {
+        e.preventDefault();
+        const currentType = apiKeyInput.attr("type");
+        const newType = currentType === "password" ? "text" : "password";
+        apiKeyInput.attr("type", newType);
+        
+        // Update icon
+        const icon = toggleButton.find("i");
+        icon.removeClass("fa-eye fa-eye-slash");
+        icon.addClass(newType === "password" ? "fa-eye" : "fa-eye-slash");
+      });
 
     // Add an event listener to save the value when it changes
     apiKeyInput.on("change", (event) => {
@@ -190,7 +221,95 @@ Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery | HTMLElement)
         }).render(true);
       });
     });
-  }
+    }
+    
+    // Add Test Connection button
+    const testConnectionInput = $html.find(`input[name="${moduleId}.testConnection"]`);
+    if (testConnectionInput.length) {
+      // Hide the input field
+      testConnectionInput.hide();
+      
+      // Replace with a button
+      const testButton = $(`<button type="button" class="test-connection-btn">
+        <i class="fas fa-plug"></i> Test Connection
+      </button>`);
+      
+      testConnectionInput.after(testButton);
+      
+      testButton.on("click", async (e) => {
+        e.preventDefault();
+        testButton.prop("disabled", true);
+        testButton.html('<i class="fas fa-spinner fa-spin"></i> Testing...');
+        
+        try {
+          const module = game.modules.get(moduleId) as any;
+          const ws = module?.socketManager;
+          
+          if (!ws) {
+            ui.notifications.error("WebSocket Manager not initialized. Are you logged in as GM?");
+            testButton.html('<i class="fas fa-times"></i> Failed');
+            setTimeout(() => {
+              testButton.prop("disabled", false);
+              testButton.html('<i class="fas fa-plug"></i> Test Connection');
+            }, 2000);
+            return;
+          }
+          
+          if (ws.isConnected()) {
+            // Send a ping and wait for response
+            const testId = `test-${Date.now()}`;
+            let responseReceived = false;
+            
+            // Set up one-time listener for pong
+            const pongHandler = (data: any) => {
+              if (data.type === "pong") {
+                responseReceived = true;
+              }
+            };
+            
+            ws.onMessageType("pong", pongHandler);
+            
+            // Send ping
+            ws.send({ type: "ping", testId });
+            
+            // Wait for response
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            if (responseReceived) {
+              ui.notifications.info("Connection successful! WebSocket is connected and responding.");
+              testButton.html('<i class="fas fa-check"></i> Connected');
+            } else {
+              ui.notifications.warn("Connected but no response received. Check your API key.");
+              testButton.html('<i class="fas fa-exclamation-triangle"></i> No Response');
+            }
+          } else {
+            // Try to connect
+            ws.connect();
+            
+            // Wait a bit for connection
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            if (ws.isConnected()) {
+              ui.notifications.info("Connection established successfully!");
+              testButton.html('<i class="fas fa-check"></i> Connected');
+            } else {
+              ui.notifications.error("Failed to connect. Check your API key and network settings.");
+              testButton.html('<i class="fas fa-times"></i> Failed');
+            }
+          }
+        } catch (error) {
+          ModuleLogger.error("Test connection error:", error);
+          ui.notifications.error("Error testing connection: " + error.message);
+          testButton.html('<i class="fas fa-times"></i> Error');
+        }
+        
+        // Reset button after delay
+        setTimeout(() => {
+          testButton.prop("disabled", false);
+          testButton.html('<i class="fas fa-plug"></i> Test Connection');
+        }, 3000);
+      });
+    }
   } catch (error) {
     ModuleLogger.error('Error in renderSettingsConfig hook:', error);
   }
