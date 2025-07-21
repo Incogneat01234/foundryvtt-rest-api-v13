@@ -1,6 +1,6 @@
 {
   "name": "simple-api",
-  "version": "",
+  "version": "5.0.1",
   "description": "Simple WebSocket API for Foundry VTT",
   "author": "Simple API",
   "license": "MIT",
