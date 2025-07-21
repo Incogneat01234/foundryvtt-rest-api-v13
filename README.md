@@ -1,4 +1,4 @@
-# Simple API for Foundry VTT v13 (v4.0.0)
+# Simple API for Foundry VTT v13
 
 [![Foundry Version](https://img.shields.io/badge/Foundry-v13-informational)](https://foundryvtt.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -15,18 +15,26 @@ A dead-simple WebSocket API for Foundry VTT v13 that allows external application
 
 ## 📦 Quick Install
 
-### For Module Users (Recommended)
+### For Module Users
 
-Install directly in Foundry VTT via manifest URL:
+Install in Foundry VTT using one of these manifest URLs:
+
+**From GitHub Releases (Recommended):**
 ```
 https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
 ```
 
-Then run the relay server:
-```bash
-npm install
-node relay/simple-api-relay.js
-```
+After installing the module in Foundry:
+
+1. Download this repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the relay server:
+   ```bash
+   node relay/simple-api-relay.js
+   ```
 
 ### For Developers
 
@@ -115,9 +123,21 @@ See [SIMPLE-API-INSTALL.md](SIMPLE-API-INSTALL.md) for complete API reference wi
 - `install.bat` - Install all dependencies
 - `run-simple-api.bat` - Start the relay server
 - `test-simple-api.bat` - Run the test suite
-- `check-release.bat` - Pre-release checklist
-- `bump-version.bat` - Update version numbers
-- `publish-simple-api.bat` - Build, commit, tag, and publish to GitHub
+- `publish-release.bat` - **Publish new versions (with GitHub Actions)**
+
+### Publishing a New Version
+
+Run `publish-release.bat` to:
+1. Choose version bump (patch/minor/major)
+2. Automatically update all version files
+3. Package the module
+4. Create and push a version tag
+5. GitHub Actions automatically creates the release
+
+The module will be available at:
+```
+https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
+```
 
 ## ⚠️ Security Notice
 

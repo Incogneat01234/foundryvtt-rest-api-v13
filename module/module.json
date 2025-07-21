@@ -12,6 +12,6 @@
   }],
   "esmodules": ["scripts/simple-api.js"],
   "socket": true,
-  "manifest": "https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json",
-  "download": "https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.zip"
+  "manifest": "https://raw.githubusercontent.com/Incogneat01234/foundryvtt-rest-api-v13/main/latest/module.json",
+  "download": "https://raw.githubusercontent.com/Incogneat01234/foundryvtt-rest-api-v13/main/latest/module.zip"
 }
