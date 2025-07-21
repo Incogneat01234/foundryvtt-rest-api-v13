@@ -2,7 +2,7 @@
   "id": "simple-api",
   "title": "Simple API",
   "description": "Dead simple WebSocket API for Foundry VTT - no auth, just works",
-  "version": "5.0.4",
+  "version": "5.0.5",
   "compatibility": {
     "minimum": "10",
     "verified": "13"
