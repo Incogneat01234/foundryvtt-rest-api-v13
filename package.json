@@ -1,6 +1,6 @@
 {
   "name": "simple-api-foundry-vtt",
-  "version": "5.0.0",
+  "version": "",
   "description": "Simple WebSocket API for Foundry VTT v13",
   "author": "Simple API",
   "license": "MIT",
