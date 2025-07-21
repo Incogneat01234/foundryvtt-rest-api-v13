@@ -10,7 +10,13 @@ export class ModuleLogger {
    * Check if debug mode is enabled
    */
   static debugLevel(): number {
-    return game.settings.get(moduleId, "logLevel") as number;
+    // Default to debug level if settings aren't registered yet
+    try {
+      return game.settings.get(moduleId, "logLevel") as number;
+    } catch (e) {
+      // Settings not registered yet, default to debug (0)
+      return 0;
+    }
   }
 
   /**
