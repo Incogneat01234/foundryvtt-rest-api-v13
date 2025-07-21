@@ -14,7 +14,10 @@ Hooks.once("init", () => {
     scope: "world",
     config: true,
     type: Boolean,
-    default: false
+    default: false,
+    onChange: value => {
+      console.log("Simple API v2 | Authentication enabled:", value);
+    }
   });
   
   game.settings.register("simple-api", "username", {
@@ -38,6 +41,13 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   console.log("Simple API v2 | Ready");
+  
+  // Log current settings
+  console.log("Simple API v2 | Current settings:", {
+    authEnabled: game.settings.get("simple-api", "authEnabled"),
+    username: game.settings.get("simple-api", "username"),
+    password: game.settings.get("simple-api", "password")
+  });
   
   // Only GM can handle API requests
   if (!game.user.isGM) {
