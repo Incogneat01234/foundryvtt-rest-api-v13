@@ -1,0 +1,16 @@
+{
+  "name": "foundry-rest-api-server",
+  "version": "1.0.0",
+  "description": "Local WebSocket server for Foundry VTT REST API module",
+  "main": "local-server.js",
+  "scripts": {
+    "start": "node local-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "license": "MIT"
+}

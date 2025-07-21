@@ -17,6 +17,8 @@ export class EmbeddedWebSocketServer {
   private port: number;
   private isRunning: boolean = false;
   private cleanupInterval: number | null = null;
+  private waitingForServer: boolean = false;
+  private serverCheckInterval: number | null = null;
   
   constructor(port: number = 8080) {
     this.port = port;
@@ -34,8 +36,56 @@ export class EmbeddedWebSocketServer {
       // Since we're in a browser environment, we need to use a different approach
       // We'll create a simple WebSocket relay that connects to the local server
       ModuleLogger.warn("Browser environment detected. Embedded server requires a local Node.js process.");
-      ui.notifications.warn("Embedded server mode requires running the local server separately. Please run 'npm run local-server' in a terminal.");
-      throw new Error("Cannot create HTTP server in browser environment. Please run the local server separately.");
+      
+      // Get the module path
+      const modulePath = game.modules.get(moduleId)?.path;
+      if (modulePath) {
+        const serverPath = `${modulePath}/server`;
+        
+        // Try to open the launcher HTML page
+        const launcherPath = `${serverPath}/start-server.html?autolaunch=true`;
+        
+        ui.notifications.info("Opening server launcher... Please check the new window/tab.", { permanent: false });
+        
+        // Open launcher in new window
+        const launcherWindow = window.open(launcherPath, 'foundry-api-server-launcher', 
+          'width=800,height=600,menubar=no,toolbar=no,location=no,status=no');
+        
+        if (!launcherWindow) {
+          // Popup blocked, try opening in new tab
+          const link = document.createElement('a');
+          link.href = launcherPath;
+          link.target = '_blank';
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          ui.notifications.warn("Please check the new tab for server launcher. You may need to allow popups for this site.", { permanent: true });
+        }
+        
+        // Also show manual instructions in console
+        console.log(`To start the local server manually:
+1. Open a terminal/command prompt
+2. Navigate to: ${serverPath}
+3. Run: npm install (first time only)
+4. Run: npm start
+
+The server will run on ws://localhost:${this.port}
+
+Alternatively, open this file in your browser: ${launcherPath}`);
+        
+        // Set a flag to indicate we're waiting for server
+        this.waitingForServer = true;
+        
+        // Start checking for server availability
+        this.checkServerAvailability();
+        
+      } else {
+        ui.notifications.warn("Embedded server mode requires running the local server separately. Check the module folder for the 'server' directory.");
+      }
+      
+      throw new Error("Launching server... Please check the launcher window and follow the instructions.");
       
       this.wss.on('connection', (ws: any, req: any) => {
         this.handleConnection(ws, req);
@@ -82,6 +132,14 @@ export class EmbeddedWebSocketServer {
       window.clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
+    
+    // Clear server check interval
+    if (this.serverCheckInterval !== null) {
+      window.clearInterval(this.serverCheckInterval);
+      this.serverCheckInterval = null;
+    }
+    
+    this.waitingForServer = false;
     
     // Close all client connections
     for (const [clientId, client] of this.clients.entries()) {
@@ -254,6 +312,58 @@ export class EmbeddedWebSocketServer {
         this.clients.delete(clientId);
       }
     }
+  }
+  
+  private checkServerAvailability(): void {
+    if (!this.waitingForServer) return;
+    
+    ModuleLogger.info("Checking for local server availability...");
+    
+    let checkCount = 0;
+    const maxChecks = 30; // Check for 30 seconds
+    
+    this.serverCheckInterval = window.setInterval(() => {
+      checkCount++;
+      
+      // Try to connect to the server
+      const ws = new WebSocket(`ws://localhost:${this.port}`);
+      
+      ws.onopen = () => {
+        ModuleLogger.info("Local server detected! Notifying user...");
+        ui.notifications.info("Local server is now running! You can close the launcher window.", { permanent: false });
+        
+        // Clean up
+        ws.close();
+        if (this.serverCheckInterval) {
+          window.clearInterval(this.serverCheckInterval);
+          this.serverCheckInterval = null;
+        }
+        this.waitingForServer = false;
+        
+        // Update status
+        game.settings.set(moduleId, "embeddedServerStatus", "running");
+        
+        // Trigger reconnection in the main WebSocket manager
+        const wsManager = (game.modules.get(moduleId) as any).api?.socketManager;
+        if (wsManager && wsManager.connect) {
+          wsManager.connect();
+        }
+      };
+      
+      ws.onerror = () => {
+        // Server not ready yet
+        if (checkCount >= maxChecks) {
+          ModuleLogger.warn("Timeout waiting for local server to start");
+          ui.notifications.warn("Server did not start within 30 seconds. Please check the launcher window.", { permanent: true });
+          
+          if (this.serverCheckInterval) {
+            window.clearInterval(this.serverCheckInterval);
+            this.serverCheckInterval = null;
+          }
+          this.waitingForServer = false;
+        }
+      };
+    }, 1000); // Check every second
   }
 }
 

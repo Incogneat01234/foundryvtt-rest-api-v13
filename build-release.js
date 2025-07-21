@@ -78,5 +78,11 @@ if (fs.existsSync('./dist/styles')) {
     archive.directory('./dist/styles/', 'styles');
 }
 
+// Add server directory with local server files
+if (fs.existsSync('./release/server')) {
+    console.log('  Adding server directory');
+    archive.directory('./release/server/', 'server');
+}
+
 // Finalize the archive
 archive.finalize();
