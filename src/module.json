@@ -2,12 +2,12 @@
   "id": "foundry-rest-api",
   "title": "Foundry REST API",
   "description": "Adds rest endpoint to get data from FoundryVTT",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "authors": [
-      {
-          "name": "ThreeHats",
-          "url": "https://github.com/ThreeHats"
-      }
+    {
+      "name": "ThreeHats",
+      "url": "https://github.com/ThreeHats"
+    }
   ],
   "license": "MIT",
   "url": "https://github.com/Incogneat01234/foundryvtt-rest-api-v13",
@@ -25,5 +25,7 @@
       "path": "languages/en.json"
     }
   ],
-  "esmodules": ["scripts/module.js"]
+  "esmodules": [
+    "scripts/module.js"
+  ]
 }

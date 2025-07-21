@@ -13,27 +13,16 @@ console.log(`Creating release for version ${version}...`);
 try {
   // Build the module
   console.log('Building module...');
-  execSync('npm run build', { stdio: 'inherit', env: { ...process.env, CI: 'true' } });
+  // Set CI environment variable for the build
+  const buildEnv = { ...process.env, CI: 'true' };
+  execSync('npm run build', { stdio: 'inherit', env: buildEnv });
   
   // Create the package
   console.log('Creating package...');
   execSync('npm run package', { stdio: 'inherit' });
   
-  // Copy files for release
-  const releaseDir = './release';
-  console.log('Preparing release files...');
-  
-  // Copy module.json from dist
-  fs.copyFileSync('./dist/module.json', path.join(releaseDir, 'module.json'));
-  
-  // Rename the versioned zip to module.zip
-  const versionedZip = path.join(releaseDir, `foundry-rest-api-v${version}.zip`);
-  const moduleZip = path.join(releaseDir, 'module.zip');
-  
-  if (fs.existsSync(versionedZip)) {
-    fs.copyFileSync(versionedZip, moduleZip);
-    console.log(`✓ Created module.zip from ${versionedZip}`);
-  }
+  // The GitHub workflow will handle copying files
+  console.log('\n✅ Module built and packaged successfully!');
   
   console.log('\n✅ Release files prepared in ./release/');
   console.log('   - module.json');

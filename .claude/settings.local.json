@@ -13,7 +13,9 @@
       "Bash(CI=true npm run build)",
       "Bash(unzip:*)",
       "Bash(git remote get-url:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(cmd /c \"rmdir /s /q node_modules\")",
+      "Bash(npm cache clean:*)"
     ],
     "deny": []
   }

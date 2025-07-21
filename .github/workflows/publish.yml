@@ -59,9 +59,16 @@ jobs:
           CI: true
         run: npm run build
 
-      - name: Create zip archive
-        working-directory: dist
-        run: zip -r ./module.zip module.json *.css scripts/ languages/
+      - name: Create release package
+        run: npm run package
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp dist/module.json release/
+          # Find the versioned zip and copy as module.zip
+          VERSION=${{steps.get_version.outputs.version-without-v}}
+          cp release/foundry-rest-api-v${VERSION}.zip release/module.zip || echo "Versioned zip not found, using existing module.zip"
 
       - name: Create GitHub Release
         id: create_version_release
@@ -72,7 +79,7 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "./dist/module.json, ./dist/module.zip"
+          artifacts: "./release/module.json, ./release/module.zip"
           tag: ${{ github.ref_name }}
           body: ${{ env.RELEASE_NOTES }}
 

@@ -1,13 +1,14 @@
 {
   "name": "foundry-rest-api",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "A REST API for Foundry VTT",
   "author": "ThreeHats",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "tsc && vite build",
-    "dev": "tsc && vite build --watch",
+    "build": "node build-simple.js",
+    "build:vite": "node node_modules/typescript/lib/tsc.js && node node_modules/vite/bin/vite.js build",
+    "dev": "node node_modules/typescript/lib/tsc.js && node node_modules/vite/bin/vite.js build --watch",
     "test": "jest",
     "install:windows": "powershell.exe -ExecutionPolicy Bypass -File install.ps1",
     "install:windows:dev": "powershell.exe -ExecutionPolicy Bypass -File install.ps1 -Symlink",
@@ -16,7 +17,8 @@
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules package-lock.json",
     "package": "node build-release.js",
-    "release": "node create-release.js"
+    "release": "node create-release.js",
+    "publish": "node publish-release.js"
   },
   "devDependencies": {
     "@league-of-foundry-developers/foundry-vtt-types": "^13.346.0-beta.20250720141111",
@@ -29,7 +31,7 @@
     "rollup-plugin-scss": "^3.0.0",
     "sass": "^1.54.8",
     "ts-jest": "^29.4.0",
-    "typescript": "^5.5.4",
+    "typescript": "^5.8.3",
     "vite": "^5.4.2"
   },
   "dependencies": {
