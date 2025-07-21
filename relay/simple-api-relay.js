@@ -265,8 +265,8 @@ wss.on('connection', (ws) => {
         
         // Set timeout for response
         setTimeout(() => {
-          if (pendingRequests.has(relayRequestId)) {
-            pendingRequests.delete(relayRequestId);
+          if (pendingRequests.has(requestId)) {
+            pendingRequests.delete(requestId);
             ws.send(JSON.stringify({
               type: 'error',
               requestId: data.requestId,
