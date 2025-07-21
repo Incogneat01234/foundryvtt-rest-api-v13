@@ -1,4 +1,14 @@
 @echo off
+REM ================================================
+REM SIMPLE API PUBLISH SCRIPT
+REM 
+REM Usage:
+REM   publish.bat           - Interactive mode
+REM   publish.bat patch     - Auto increment patch version
+REM   publish.bat minor     - Auto increment minor version
+REM   publish.bat major     - Auto increment major version
+REM ================================================
+
 setlocal enabledelayedexpansion
 
 echo.
@@ -38,6 +48,20 @@ for /f "tokens=2 delims=:" %%a in ('findstr /c:"\"version\"" module\module.json'
 echo Current version: %current_version%
 echo.
 
+REM Check if version type was passed as argument
+if "%1"=="patch" (
+    set version_choice=2
+    set auto_mode=1
+) else if "%1"=="minor" (
+    set version_choice=3
+    set auto_mode=1
+) else if "%1"=="major" (
+    set version_choice=4
+    set auto_mode=1
+) else (
+    set auto_mode=0
+)
+
 REM Check for uncommitted changes
 git diff-index --quiet HEAD -- >nul 2>nul
 if %errorlevel% neq 0 (
@@ -50,24 +74,55 @@ if %errorlevel% neq 0 (
     )
 )
 
+REM Parse current version
+for /f "tokens=1,2,3 delims=." %%a in ("%current_version%") do (
+    set major=%%a
+    set minor=%%b
+    set patch=%%c
+)
+
 REM Ask about version bump
 echo.
 echo How should we bump the version?
 echo 1) Keep current version (%current_version%)
-echo 2) Patch release (increment last number)
-echo 3) Minor release (increment middle number)
-echo 4) Major release (increment first number)
+echo 2) Patch release - %major%.%minor%.!patch! -^> %major%.%minor%.NEXT
+echo 3) Minor release - %major%.%minor%.%patch% -^> %major%.NEXT.0
+echo 4) Major release - %major%.%minor%.%patch% -^> NEXT.0.0
+echo 5) Custom version
 echo.
-set /p version_choice="Choose (1-4): "
+if "%auto_mode%"=="1" (
+    echo Auto-selecting: %1 release
+) else (
+    set /p version_choice="Choose (1-5): "
+)
 
 if "%version_choice%"=="1" (
     set new_version=%current_version%
     set skip_version_update=1
-) else (
-    echo.
-    set /p new_version="Enter new version (current: %current_version%): "
+) else if "%version_choice%"=="2" (
+    set /a new_patch=%patch%+1
+    set new_version=%major%.%minor%.!new_patch!
     set skip_version_update=0
+) else if "%version_choice%"=="3" (
+    set /a new_minor=%minor%+1
+    set new_version=%major%.!new_minor!.0
+    set skip_version_update=0
+) else if "%version_choice%"=="4" (
+    set /a new_major=%major%+1
+    set new_version=!new_major!.0.0
+    set skip_version_update=0
+) else if "%version_choice%"=="5" (
+    echo.
+    set /p new_version="Enter custom version: "
+    set skip_version_update=0
+) else (
+    echo Invalid choice!
+    pause
+    exit /b 1
 )
+
+echo.
+echo Selected version: %new_version%
 
 REM Get commit message
 echo.
