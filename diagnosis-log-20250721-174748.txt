@@ -1,0 +1,59 @@
+Diagnosis started at Mon 07/21/2025 17:47:48.24 
+ 
+Running connection diagnostic... 
+======================================== 
+🔍 Foundry REST API v13 Diagnostic Tool
+
+Configuration:
+  Foundry URL: http://localhost:30000
+  Relay URL: ws://localhost:8080
+  API Username: API_USER
+
+1️⃣ Testing Foundry HTTP connection...
+   ✅ Foundry running: v13.346
+   ✅ World loaded: undefined
+
+2️⃣ Testing Socket.IO connection...
+   Connecting to: ws://localhost:30000/socket.io/?EIO=4&transport=websocket
+   ✅ WebSocket connected
+   ✅ Socket.IO handshake successful
+   Testing Simple API module...
+   ⚠️  No response from Simple API module
+      → Check if module is installed and enabled
+
+3️⃣ Testing Relay Server connection...
+   ❌ Cannot connect to relay server: 
+      → Make sure relay server is running (node relay/simple-api-relay.js)
+
+📊 Diagnostic Summary:
+─────────────────────
+✅ Foundry HTTP API
+✅ World Loaded
+✅ Socket.IO Connection
+❌ Simple API Module
+❌ Relay Server
+❌ End-to-End Test
+
+💡 Recommendations:
+1. Install the Simple API module in Foundry
+2. Enable the module in your world
+3. Configure authentication if needed
+1. Start the relay server: node relay/simple-api-relay.js
+2. Check that ports 8080 is available
+1. Check module authentication settings match relay server
+2. Look at relay server console for error messages
+3. Check Foundry console (F12) for module errors
+
+🔧 Debug Commands:
+  Watch relay logs: node relay/simple-api-relay.js
+  Test simple client: node tests/test-simple-api.js
+  Check Foundry console: F12 in Foundry
+ 
+ 
+Checking module status... 
+======================================== 
+Run these commands in Foundry console (F12): 
+game.user.isGM 
+game.modules.get('simple-api')?.active 
+window.testSimpleAPI() 
+ 

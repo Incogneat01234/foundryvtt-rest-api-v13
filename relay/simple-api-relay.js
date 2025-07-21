@@ -276,7 +276,7 @@ wss.on('connection', (ws) => {
         }, 10000);
         
       } catch (error) {
-        pendingRequests.delete(relayRequestId);
+        pendingRequests.delete(requestId);
         ws.send(JSON.stringify({
           type: 'error',
           requestId: data.requestId,
