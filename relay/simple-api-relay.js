@@ -13,6 +13,8 @@ const http = require('http');
 // Configuration
 const PORT = process.env.PORT || 8080;
 const FOUNDRY_URL = process.env.FOUNDRY_URL || 'http://localhost:30000';
+const API_USERNAME = process.env.API_USERNAME || 'API_USER';
+const API_PASSWORD = process.env.API_PASSWORD || 'API';
 
 // Store connected clients
 const clients = new Map();
@@ -34,7 +36,9 @@ const server = http.createServer((req, res) => {
     status: foundryConnected ? 'connected' : 'disconnected',
     foundryUrl: FOUNDRY_URL,
     clients: clients.size,
-    message: 'Simple API Relay Server'
+    message: 'Simple API Relay Server',
+    authEnabled: true,
+    authUsername: API_USERNAME
   }));
 });
 
@@ -152,10 +156,18 @@ function sendToFoundry(request) {
     throw new Error('Not connected to Foundry');
   }
   
-  // Send as a userspace socket message that Foundry will relay
-  const message = `42["userspace-socket-message",{"action":"module.simple-api","data":${JSON.stringify(request)}}]`;
+  // Send as a userspace socket message with authentication
+  const messageData = {
+    action: "module.simple-api",
+    data: request,
+    auth: {
+      username: API_USERNAME,
+      password: API_PASSWORD
+    }
+  };
+  
+  const message = `42["userspace-socket-message",${JSON.stringify(messageData)}]`;
   console.log('📤 Sending to Foundry:', request.type);
-  console.log('📤 Full message:', message);
   foundryWs.send(message);
 }
 
@@ -254,7 +266,10 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('🚀 Simple API Relay Server');
   console.log(`📍 Foundry URL: ${FOUNDRY_URL}`);
   console.log(`✨ API Server: http://localhost:${PORT}`);
-  console.log('\n📝 Make sure the simple-api module is installed and enabled in Foundry!\n');
+  console.log(`🔐 Auth Username: ${API_USERNAME}`);
+  console.log(`🔐 Auth Password: ${API_PASSWORD}`);
+  console.log('\n📝 Make sure the simple-api module is installed and enabled in Foundry!');
+  console.log('📝 Configure matching username/password in Foundry module settings!\n');
   
   connectToFoundry();
 });

@@ -3,11 +3,11 @@
 [![Foundry Version](https://img.shields.io/badge/Foundry-v13-informational)](https://foundryvtt.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A dead-simple WebSocket API for Foundry VTT v13 that allows external applications to interact with your game. Zero authentication, zero complexity - just works.
+A dead-simple WebSocket API for Foundry VTT v13 that allows external applications to interact with your game. Optional authentication for security, minimal complexity - just works.
 
 ## 🚀 Features
 
-- ✅ **Zero Configuration** - No API keys, no authentication
+- ✅ **Minimal Configuration** - Optional authentication for security
 - ✅ **Lightweight** - Only ~400 lines of code
 - ✅ **All Core Functions** - Actors, items, dice, chat, combat
 - ✅ **Local Only** - Runs on your machine, no external dependencies
@@ -31,9 +31,17 @@ After installing the module in Foundry:
    ```bash
    npm install
    ```
-3. Run the relay server:
+3. Configure authentication (optional):
+   - In Foundry: Settings → Module Settings → Simple API
+   - Enable authentication and set username/password
+   - Default: Username `API_USER`, Password `API`
+4. Run the relay server:
    ```bash
    node relay/simple-api-relay.js
+   ```
+   Or with custom auth:
+   ```bash
+   API_USERNAME=myuser API_PASSWORD=mypass node relay/simple-api-relay.js
    ```
 
 ### For Developers
@@ -141,12 +149,19 @@ https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/downlo
 
 ## ⚠️ Security Notice
 
-**This API has NO AUTHENTICATION!** Only use on:
-- Your local machine
-- Trusted private networks
-- Development environments
+**Authentication is optional but recommended!** 
 
-Never expose this API to the internet.
+When to use authentication:
+- Multiple users on your network
+- Running on shared/cloud servers
+- Any non-localhost deployment
+
+When authentication might not be needed:
+- Single-user local development
+- Isolated Docker containers
+- Air-gapped systems
+
+Never expose this API to the internet without authentication enabled.
 
 ## 🤝 MCP Integration
 

@@ -6,6 +6,34 @@
 
 Hooks.once("init", () => {
   console.log("Simple API v2 | Initializing");
+  
+  // Register module settings
+  game.settings.register("simple-api", "authEnabled", {
+    name: "Enable Authentication",
+    hint: "Require authentication for external API connections",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+  
+  game.settings.register("simple-api", "username", {
+    name: "API Username",
+    hint: "Username for API authentication",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "API_USER"
+  });
+  
+  game.settings.register("simple-api", "password", {
+    name: "API Password",
+    hint: "Password for API authentication",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "API"
+  });
 });
 
 Hooks.once("ready", () => {
@@ -22,53 +50,66 @@ Hooks.once("ready", () => {
   // Method 1: Standard Foundry socket listener
   game.socket.on("module.simple-api", handleApiRequest);
   
-  // Method 2: Intercept Socket.IO manager messages
-  if (game.socket._socket && game.socket._socket._callbacks) {
-    // Hook into the Socket.IO callbacks
-    const callbacks = game.socket._socket._callbacks;
-    
-    // Add handler for userspace-socket-message
-    if (!callbacks['$userspace-socket-message']) {
-      callbacks['$userspace-socket-message'] = [];
-    }
-    callbacks['$userspace-socket-message'].push((data) => {
-      console.log("Simple API v2 | Userspace message:", data);
-      if (data && data.action === "module.simple-api" && data.data) {
-        handleApiRequest(data.data);
+  // Method 2: Intercept Socket.IO manager messages (with safety checks)
+  try {
+    if (game.socket._socket && game.socket._socket._callbacks) {
+      // Hook into the Socket.IO callbacks
+      const callbacks = game.socket._socket._callbacks;
+      
+      // Add handler for userspace-socket-message
+      if (!callbacks['$userspace-socket-message']) {
+        callbacks['$userspace-socket-message'] = [];
       }
-    });
-    
-    // Add direct handler for module.simple-api
-    if (!callbacks['$module.simple-api']) {
-      callbacks['$module.simple-api'] = [];
+      callbacks['$userspace-socket-message'].push((data) => {
+        console.log("Simple API v2 | Userspace message:", data);
+        if (data && data.action === "module.simple-api" && data.data) {
+          // Check authentication if provided
+          if (data.auth && !validateAuth(data.auth)) {
+            console.log("Simple API v2 | Authentication failed");
+            return;
+          }
+          handleApiRequest(data.data);
+        }
+      });
+      
+      // Add direct handler for module.simple-api
+      if (!callbacks['$module.simple-api']) {
+        callbacks['$module.simple-api'] = [];
+      }
+      callbacks['$module.simple-api'].push((data) => {
+        console.log("Simple API v2 | Direct module message:", data);
+        handleApiRequest(data);
+      });
     }
-    callbacks['$module.simple-api'].push((data) => {
-      console.log("Simple API v2 | Direct module message:", data);
-      handleApiRequest(data);
-    });
+  } catch (error) {
+    console.log("Simple API v2 | Could not hook into Socket.IO callbacks:", error.message);
   }
   
-  // Method 3: Override the socket manager's handleMessage
-  if (game.socket._socket && game.socket._socket.manager) {
-    const manager = game.socket._socket.manager;
-    const originalHandlePacket = manager._packet.bind(manager);
-    
-    manager._packet = function(packet) {
-      // Check for our custom messages
-      if (packet && packet.type === 2 && packet.data) {
-        const [eventName, eventData] = packet.data;
-        if (eventName === "module.simple-api" || 
-            (eventName === "userspace-socket-message" && eventData?.action === "module.simple-api")) {
-          console.log("Simple API v2 | Intercepted packet:", eventName, eventData);
-        }
-      }
+  // Method 3: Override the socket manager's handleMessage (with safety checks)
+  try {
+    if (game.socket._socket?.manager?._packet) {
+      const manager = game.socket._socket.manager;
+      const originalHandlePacket = manager._packet.bind(manager);
       
-      return originalHandlePacket(packet);
-    };
+      manager._packet = function(packet) {
+        // Check for our custom messages
+        if (packet && packet.type === 2 && packet.data) {
+          const [eventName, eventData] = packet.data;
+          if (eventName === "module.simple-api" || 
+              (eventName === "userspace-socket-message" && eventData?.action === "module.simple-api")) {
+            console.log("Simple API v2 | Intercepted packet:", eventName, eventData);
+          }
+        }
+        
+        return originalHandlePacket(packet);
+      };
+    }
+  } catch (error) {
+    console.log("Simple API v2 | Could not override packet handler:", error.message);
   }
   
   console.log("Simple API v2 | Message handlers installed");
-  console.log("Simple API v2 | Socket callbacks:", Object.keys(game.socket._socket._callbacks || {}));
+  console.log("Simple API v2 | Socket callbacks:", Object.keys(game.socket._socket?._callbacks || {}));
   
   // Send ready signal
   game.socket.emit("module.simple-api", {
@@ -88,6 +129,20 @@ Hooks.once("ready", () => {
   
   console.log("Simple API v2 | Ready! Test with: testSimpleAPIv2()");
 });
+
+/**
+ * Validate authentication
+ */
+function validateAuth(auth) {
+  if (!game.settings.get("simple-api", "authEnabled")) {
+    return true; // Auth not required
+  }
+  
+  const expectedUsername = game.settings.get("simple-api", "username");
+  const expectedPassword = game.settings.get("simple-api", "password");
+  
+  return auth.username === expectedUsername && auth.password === expectedPassword;
+}
 
 /**
  * Main request handler
