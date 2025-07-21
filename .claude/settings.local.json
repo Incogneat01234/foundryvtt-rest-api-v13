@@ -15,7 +15,8 @@
       "Bash(git remote get-url:*)",
       "Bash(rm:*)",
       "Bash(cmd /c \"rmdir /s /q node_modules\")",
-      "Bash(npm cache clean:*)"
+      "Bash(npm cache clean:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }
