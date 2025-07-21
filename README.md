@@ -1,4 +1,4 @@
-# Simple API for Foundry VTT v13
+# Simple API for Foundry VTT v13 (v4.0.0)
 
 [![Foundry Version](https://img.shields.io/badge/Foundry-v13-informational)](https://foundryvtt.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
