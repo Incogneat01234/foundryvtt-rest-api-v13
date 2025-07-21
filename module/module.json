@@ -1,0 +1,17 @@
+{
+  "id": "simple-api",
+  "title": "Simple API",
+  "description": "Dead simple WebSocket API for Foundry VTT - no auth, just works",
+  "version": "1.0.1",
+  "compatibility": {
+    "minimum": "10",
+    "verified": "13"
+  },
+  "authors": [{
+    "name": "Simple API"
+  }],
+  "esmodules": ["scripts/simple-api.js"],
+  "socket": true,
+  "manifest": "https://github.com/YOUR_GITHUB_USERNAME/foundryvtt-rest-api-v13/releases/latest/download/simple-api-module.json",
+  "download": "https://github.com/YOUR_GITHUB_USERNAME/foundryvtt-rest-api-v13/releases/latest/download/simple-api-module.zip"
+}

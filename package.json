@@ -1,44 +1,17 @@
 {
-  "name": "foundry-rest-api",
-  "version": "3.1.0",
-  "description": "A REST API for Foundry VTT",
-  "author": "Incogneat01234",
+  "name": "simple-api-foundry-vtt",
+  "version": "1.0.1",,
+  "description": "Simple WebSocket API for Foundry VTT v13",
+  "author": "Simple API",
   "license": "MIT",
-  "private": true,
   "scripts": {
-    "build": "node build-simple.js",
-    "build:vite": "node node_modules/typescript/lib/tsc.js && node node_modules/vite/bin/vite.js build",
-    "dev": "node node_modules/typescript/lib/tsc.js && node node_modules/vite/bin/vite.js build --watch",
-    "test": "jest",
-    "install:windows": "powershell.exe -ExecutionPolicy Bypass -File install.ps1",
-    "install:windows:dev": "powershell.exe -ExecutionPolicy Bypass -File install.ps1 -Symlink",
-    "install:unix": "./install.sh",
-    "install:unix:dev": "./install.sh --symlink",
-    "clean": "rimraf dist",
-    "clean:all": "rimraf dist node_modules package-lock.json",
-    "package": "node build-release.js",
-    "release": "node create-release.js",
-    "publish": "node publish-release.js",
-    "local-server": "node local-server.js"
-  },
-  "devDependencies": {
-    "@league-of-foundry-developers/foundry-vtt-types": "^13.346.0-beta.20250720141111",
-    "@types/file-saver": "^2.0.7",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^22.13.9",
-    "archiver": "^7.0.1",
-    "jest": "^30.0.0",
-    "rollup-plugin-copy": "^3.5.0",
-    "rollup-plugin-scss": "^3.0.0",
-    "sass": "^1.54.8",
-    "ts-jest": "^29.4.0",
-    "typescript": "^5.8.3",
-    "vite": "^5.4.2"
+    "start": "node relay/simple-api-relay.js",
+    "test": "node tests/test-simple-api.js",
+    "package": "cd module && npm run package",
+    "publish": "cd module && publish.bat"
   },
   "dependencies": {
-    "dotenv": "^16.5.0",
-    "file-saver": "^2.0.5",
-    "jszip": "^3.10.1",
-    "ws": "^8.16.0"
+    "ws": "^8.14.2",
+    "socket.io-client": "^4.7.4"
   }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "simple-api",
+  "version": "1.0.1",,
+  "description": "Simple WebSocket API for Foundry VTT",
+  "author": "Simple API",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "package": "node package.js",
+    "publish": "publish.bat"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1"
+  }
+}

@@ -1,454 +1,125 @@
-# Foundry VTT REST API (v13 Edition)
+# Simple API for Foundry VTT v13
 
 [![Foundry Version](https://img.shields.io/badge/Foundry-v13-informational)](https://foundryvtt.com)
-[![License](https://img.shields.io/github/license/Incogneat01234/foundryvtt-rest-api-v13)](LICENSE)
-[![Latest Release](https://img.shields.io/github/v/release/Incogneat01234/foundryvtt-rest-api-v13)](https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A comprehensive REST API module for Foundry VTT v13 that enables external applications to interact with your Foundry world through WebSocket connections. This fork has been completely updated for Foundry v13 compatibility with enhanced features and improved developer experience.
+A dead-simple WebSocket API for Foundry VTT v13 that allows external applications to interact with your game. Zero authentication, zero complexity - just works.
 
-## 🎯 Key Features
+## 🚀 Features
 
-- **Full Foundry v13 Compatibility** - Updated to work with the latest Foundry VTT v13 API changes
-- **WebSocket-Based Communication** - Real-time bidirectional communication with your Foundry world
-- **Local-Only Mode** - Run entirely on your local network without external dependencies
-- **Comprehensive API Coverage** - Access to entities, combat, dice rolling, file management, and more
-- **Enhanced Security** - API key authentication with show/hide toggle and connection testing
-- **Developer-Friendly** - Extensive debug logging, TypeScript support, and detailed documentation
-- **MCP Integration Ready** - Designed to work with AI assistants through Model Context Protocol
+- ✅ **Zero Configuration** - No API keys, no authentication
+- ✅ **Lightweight** - Only ~400 lines of code
+- ✅ **All Core Functions** - Actors, items, dice, chat, combat
+- ✅ **Local Only** - Runs on your machine, no external dependencies
+- ✅ **Fast Setup** - Running in under 5 minutes
 
-## 📋 Table of Contents
-
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Local Setup](#local-setup)
-- [API Documentation](#api-documentation)
-- [Available Endpoints](#available-endpoints)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Testing](#testing)
-- [Migration from v12](#migration-from-v12)
-- [Contributing](#contributing)
-- [Credits](#credits)
-
-## 🚀 Installation
-
-### Method 1: Manifest URL (Recommended)
-
-1. Open Foundry VTT v13
-2. Navigate to **Settings → Manage Modules → Install Module**
-3. Paste this manifest URL:
-   ```
-   https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
-   ```
-4. Click **Install**
-
-### Method 2: Manual Installation
-
-1. Download the latest release from [Releases](https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases)
-2. Extract the zip file to your Foundry modules directory:
-   - Windows: `%appdata%/FoundryVTT/Data/modules/`
-   - macOS: `~/Library/Application Support/FoundryVTT/Data/modules/`
-   - Linux: `~/.local/share/FoundryVTT/Data/modules/`
-
-### Method 3: Development Installation
+## 📦 Quick Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/Incogneat01234/foundryvtt-rest-api-v13.git
-
-# Install dependencies
-cd foundryvtt-rest-api-v13
+# 1. Install the module
+cd module
 npm install
+npm run package
 
-# Build the module
-npm run build
+# 2. Copy to Foundry modules folder and enable in-game
 
-# Create a symbolic link (run as administrator on Windows)
-npm run install:windows:dev  # For Windows
-npm run install:unix:dev     # For macOS/Linux
+# 3. Start the relay server
+cd ..
+node relay/simple-api-relay.js
+
+# 4. Test it works
+node tests/test-simple-api.js
 ```
 
-## 🎮 Quick Start
+## 🎯 What Can It Do?
 
-1. **Enable the Module**
-   - In your Foundry world, go to **Settings → Manage Modules**
-   - Enable "Foundry REST API"
-   - Reload when prompted
+- **Actors**: Create, read, update, delete characters and NPCs
+- **Items**: Create items and manage inventories
+- **Dice**: Roll any dice formula with modifiers
+- **Chat**: Send messages to game chat
+- **Combat**: Manage initiative and encounters
+- **Tokens**: Create and update tokens on scenes
 
-2. **Configure Settings**
-   - Go to **Settings → Module Settings**
-   - Find "Foundry REST API" section
-   - Set your API key (or use the default world ID)
-   - Click **Test Connection** to verify WebSocket connectivity
+## 📝 Example Usage
 
-3. **Connect Your Application**
-   - Default WebSocket URL: `ws://localhost:8080` (local mode)
-   - Alternative relay URL: `wss://foundryvtt-rest-api-relay.fly.dev`
-   - Use your API key for authentication
-   - See the [API Test Collection](https://github.com/ThreeHats/foundryvtt-rest-api-relay/blob/main/Foundry%20REST%20API%20Documentation.postman_collection.json) for examples
-
-## 🏠 Local Setup
-
-The module now supports running entirely locally without external dependencies. This provides better privacy, security, and control.
-
-### Quick Start with Embedded Server Mode
-
-1. **Enable Embedded Server in Foundry**
-   - Go to Module Settings
-   - Enable "Use Embedded Server"
-   - Save and reload
-
-2. **Start the Local Server**
-   - **Windows**: Double-click `start-local-server.bat`
-   - **macOS/Linux**: Run `./start-local-server.sh`
-   - **Manual**: Run `npm run local-server`
-
-The module will automatically connect to the local server. No additional configuration needed!
-
-### Benefits of Local Mode
-
-- No external network dependencies
-- Full control over the server
-- Lower latency
-- Enhanced privacy and security
-- Easier development and debugging
-- Simple one-click startup
-
-See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed configuration options.
-
-## 📚 API Documentation
-
-- **[API Message Format Guide](API_MESSAGE_FORMAT.md)** - Complete guide to all message types and formats
-- **[API Quick Reference](API_QUICK_REFERENCE.md)** - Quick reference for common operations
-
-### WebSocket Connection
-
-#### Local Mode (Recommended)
 ```javascript
-const ws = new WebSocket('ws://localhost:8080?id=your-client-id&token=optional-token');
+const WebSocket = require('ws');
+const ws = new WebSocket('ws://localhost:8080');
 
 ws.on('open', () => {
-  console.log('Connected to local Foundry server!');
-  
-  // Send a test ping
+  // Create a character
   ws.send(JSON.stringify({
-    type: 'ping',
-    requestId: 'test-1'
+    type: 'create-actor',
+    requestId: '123',
+    name: 'Gandalf',
+    actorType: 'character',
+    system: {
+      abilities: {
+        str: { value: 13 },
+        int: { value: 20 }
+      }
+    }
   }));
 });
-```
 
-#### Relay Mode
-```javascript
-const ws = new WebSocket('wss://foundryvtt-rest-api-relay.fly.dev?id=your-world-id&token=your-api-key');
-
-ws.on('open', () => {
-  console.log('Connected to Foundry relay!');
-  
-  // Send a test ping
-  ws.send(JSON.stringify({
-    type: 'ping',
-    requestId: 'test-1'
-  }));
-});
-```
-
-Both modes use the same message format:
-
-```javascript
 ws.on('message', (data) => {
-  const response = JSON.parse(data);
-  console.log('Received:', response);
+  console.log('Response:', JSON.parse(data));
 });
 ```
 
-### Message Format
-
-All messages follow this structure:
-
-```typescript
-// Request
-{
-  type: string;        // Action type
-  requestId: string;   // Unique request ID
-  [key: string]: any;  // Additional parameters
-}
-
-// Response
-{
-  type: string;        // Response type
-  requestId: string;   // Matching request ID
-  data?: any;          // Response data
-  error?: string;      // Error message if failed
-}
-```
-
-## 🛠️ Available Endpoints
-
-### Entity Management
-
-| Action | Description |
-|--------|-------------|
-| `get-entity` | Retrieve any entity by UUID |
-| `create-entity` | Create new actors, items, scenes, etc. |
-| `update-entity` | Update entity properties |
-| `delete-entity` | Delete entities |
-| `increase-attribute` | Increase numeric attributes |
-| `decrease-attribute` | Decrease numeric attributes |
-| `kill-entity` | Mark tokens/actors as defeated |
-| `give-item` | Transfer items between actors |
-
-### Combat & Encounters
-
-| Action | Description |
-|--------|-------------|
-| `get-encounters` | List all combat encounters |
-| `start-encounter` | Create and start new combat |
-| `encounter-next-turn` | Advance to next turn |
-| `encounter-previous-turn` | Go back one turn |
-| `encounter-next-round` | Advance to next round |
-| `encounter-previous-round` | Go back one round |
-| `add-to-encounter` | Add combatants |
-| `remove-from-encounter` | Remove combatants |
-| `end-encounter` | End active combat |
-
-### Dice Rolling
-
-| Action | Description |
-|--------|-------------|
-| `perform-roll` | Execute dice rolls with formulas |
-| `get-rolls` | Retrieve roll history |
-| `get-last-roll` | Get the most recent roll |
-
-### Search & Discovery
-
-| Action | Description |
-|--------|-------------|
-| `perform-search` | Search across all content |
-| `get-structure` | Get world folder structure |
-| `get-contents` | Browse folder/compendium contents |
-
-### Automation
-
-| Action | Description |
-|--------|-------------|
-| `execute-macro` | Run macros by ID |
-| `execute-js` | Execute JavaScript code |
-| `select-entities` | Programmatically select tokens |
-| `get-selected-entities` | Get current selection |
-
-### File Management
-
-| Action | Description |
-|--------|-------------|
-| `get-file-system` | Browse file structure |
-| `upload-file` | Upload files to Foundry |
-| `download-file` | Download files from Foundry |
-
-### Other
-
-| Action | Description |
-|--------|-------------|
-| `get-sheet-html` | Render entity sheets as HTML |
-| `ping` | Test connection |
-| `pong` | Connection test response |
-
-## ⚙️ Configuration
-
-### Module Settings
-
-- **WebSocket Relay URL**: The relay server URL (default: public relay)
-- **API Key**: Your authentication token (shown as password field with toggle)
-- **Log Level**: Debug logging verbosity (Debug/Info/Warn/Error)
-- **Ping Interval**: Keep-alive ping frequency (seconds)
-- **Max Reconnect Attempts**: Connection retry limit
-- **Reconnect Base Delay**: Initial reconnection delay (ms)
-- **Test Connection**: Button to verify WebSocket connectivity
-
-### Debug Logging
-
-The module includes comprehensive debug logging enabled by default:
-
-```javascript
-// In browser console (F12)
-// You'll see detailed logs like:
-foundry-rest-api [2025-07-21T01:00:00.000Z] DEBUG [WebSocketManager.connect:123] | Connecting to WebSocket
-foundry-rest-api [2025-07-21T01:00:01.000Z] INFO [WebSocketManager.onOpen:456] | WebSocket connected
-```
-
-## 🔧 Development
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-- Foundry VTT v13
-
-### Setup Development Environment
-
-```bash
-# Clone repository
-git clone https://github.com/Incogneat01234/foundryvtt-rest-api-v13.git
-cd foundryvtt-rest-api-v13
-
-# Install dependencies
-npm install
-
-# Build in watch mode
-npm run dev
-
-# Run tests
-npm test
-```
-
-### Project Structure
+## 📁 Project Structure
 
 ```
 foundryvtt-rest-api-v13/
-├── src/
-│   ├── ts/                  # TypeScript source
-│   │   ├── module.ts        # Main module entry
-│   │   ├── network/         # WebSocket handling
-│   │   │   ├── routers/     # API endpoint handlers
-│   │   │   └── webSocketManager.ts
-│   │   └── utils/           # Utilities
-│   ├── styles/              # SCSS styles
-│   └── module.json          # Module manifest
-├── dist/                    # Built files
-├── tests/                   # Test files
-└── MCP_PLAN.md             # MCP integration plan
+├── module/              # Foundry module files
+│   ├── scripts/         # Module JavaScript
+│   └── module.json      # Module manifest
+├── relay/               # WebSocket relay server
+├── tests/               # Test suite
+├── examples/            # Usage examples
+└── docker/              # Docker deployment
 ```
 
-### Building for Release
+## 🐳 Docker Support
 
 ```bash
-# One-click release (Windows)
-publish.bat
-
-# One-click release (Unix)
-npm run publish
-
-# Manual build
-npm run build
-npm run package
+cd docker
+docker-compose up -d
 ```
 
-## 🧪 Testing
+The Docker container auto-discovers your Foundry instance and provides the API on port 8080.
 
-### Browser Console Tests
+## 📖 API Documentation
 
-```javascript
-// Copy test scripts from:
-// - test-module-console.js    (basic module test)
-// - test-websocket-advanced.js (advanced WebSocket test)
+See [SIMPLE-API-INSTALL.md](SIMPLE-API-INSTALL.md) for complete API reference with all message types and examples.
 
-// Or run manually:
-const api = game.modules.get('foundry-rest-api').api;
-console.log('Connected:', api.websocket.isConnected());
-```
+## 🛠️ Scripts
 
-### API Testing
+- `install.bat` - Install all dependencies
+- `run-simple-api.bat` - Start the relay server
+- `test-simple-api.bat` - Run the test suite
+- `check-release.bat` - Pre-release checklist
+- `bump-version.bat` - Update version numbers
+- `publish-simple-api.bat` - Build, commit, tag, and publish to GitHub
 
-Use the provided test scripts:
-- `test-api.js` - Basic API functionality
-- `test-api-advanced.js` - Advanced router testing
-- `test-api-monitor.js` - Performance monitoring
+## ⚠️ Security Notice
 
-## 🔄 Migration from v12
+**This API has NO AUTHENTICATION!** Only use on:
+- Your local machine
+- Trusted private networks
+- Development environments
 
-### Breaking Changes
+Never expose this API to the internet.
 
-1. **Type Definitions**: Updated to v13 types
-   - Some `game.data` references changed to `game` 
-   - New document class structure
+## 🤝 MCP Integration
 
-2. **API Updates**: 
-   - `getDocumentClass` utility added for v13 compatibility
-   - Enhanced error handling for settings
-
-3. **UI Changes**:
-   - API key field now has show/hide toggle
-   - Test Connection button added
-   - Enhanced debug logging
-
-### Migration Steps
-
-1. Backup your world
-2. Disable the v12 module
-3. Install the v13 version
-4. Re-enable and configure
-5. Test your integrations
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow existing code style
-- Add tests for new features
-- Update documentation
-- Test on Foundry v13
-
-## 📢 Support
-
-- **Issues**: [GitHub Issues](https://github.com/Incogneat01234/foundryvtt-rest-api-v13/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Incogneat01234/foundryvtt-rest-api-v13/discussions)
-- **Discord**: [Original Discord Server](https://discord.gg/U634xNGRAC)
-
-## 🎉 What's New in v13
-
-### Major Updates
-
-- ✅ **Full Foundry v13 Compatibility**
-- ✅ **Enhanced Security** - Password field with visibility toggle
-- ✅ **Connection Testing** - Built-in test button
-- ✅ **Comprehensive Debug Logging** - Detailed logs with timestamps
-- ✅ **Improved Error Handling** - Graceful fallbacks
-- ✅ **TypeScript Support** - Better type safety
-- ✅ **One-Click Publishing** - Automated release process
-- ✅ **MCP Integration Ready** - AI assistant compatibility
-
-### Technical Improvements
-
-- Fixed `game.settings` registration order issues
-- Added `@ts-nocheck` for v13 type compatibility
-- Improved WebSocket reconnection logic
-- Enhanced build process with fallbacks
-- Added comprehensive test scripts
-
-## 👥 Credits
-
-### Current Maintainer
-- **[Incogneat01234](https://github.com/Incogneat01234)** - v13 update and enhancements
-
-### Original Creator
-- **[ThreeHats](https://github.com/ThreeHats)** - Original module creator
-
-### Contributors
-- See [Contributors](https://github.com/Incogneat01234/foundryvtt-rest-api-v13/graphs/contributors)
-
-### Special Thanks
-- The Foundry VTT community
-- Original module users and testers
-- [League of Extraordinary Foundry Developers](https://github.com/League-of-Foundry-Developers)
+Designed to work with [Foundry VTT MCP Server](https://github.com/YOUR_USERNAME/foundry-vtt-13-mcp-server) for AI assistant integration.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT - Use it however you want!
 
----
+## 🙏 Credits
 
-<p align="center">
-  Made with ❤️ for the Foundry VTT community
-  <br>
-  <a href="https://foundryvtt.com">Foundry VTT</a> • 
-  <a href="https://github.com/Incogneat01234/foundryvtt-rest-api-v13">GitHub</a> • 
-  <a href="https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases">Releases</a>
-</p>
+- Simplified from the original [FoundryVTT-RestAPI](https://github.com/cs96and/FoundryVTT-RestAPI)
+- Built for Foundry VTT v13 by the community

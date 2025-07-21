@@ -1,0 +1,100 @@
+name: Release Simple API
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        cd module
+        npm install
+        
+    - name: Build package
+      run: |
+        cd module
+        npm run package
+        
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Simple API v${{ steps.get_version.outputs.VERSION }}
+        body: |
+          # Simple API for Foundry VTT v${{ steps.get_version.outputs.VERSION }}
+          
+          ## Installation
+          
+          ### Via Manifest URL:
+          ```
+          https://github.com/${{ github.repository }}/releases/latest/download/module.json
+          ```
+          
+          ### Manual Installation:
+          1. Download `module.zip` from the assets below
+          2. Extract to your Foundry modules folder
+          3. Enable "Simple API" in your world
+          
+          ## What's Changed
+          See [commit history](https://github.com/${{ github.repository }}/commits/v${{ steps.get_version.outputs.VERSION }}) for details.
+          
+          ## Usage
+          1. Enable the module in your Foundry world (requires GM permission)
+          2. Run the relay server: `node relay/simple-api-relay.js`
+          3. Connect to `ws://localhost:8080`
+          
+          See [documentation](https://github.com/${{ github.repository }}) for API reference.
+        draft: false
+        prerelease: false
+        
+    - name: Upload module.json
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./module/release/module.json
+        asset_name: module.json
+        asset_content_type: application/json
+        
+    - name: Upload module.zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./module/release/module.zip
+        asset_name: module.zip
+        asset_content_type: application/zip
+        
+    - name: Upload versioned zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./module/release/simple-api-v${{ steps.get_version.outputs.VERSION }}.zip
+        asset_name: simple-api-v${{ steps.get_version.outputs.VERSION }}.zip
+        asset_content_type: application/zip
