@@ -56,8 +56,8 @@ echo Updating version to %new_version%...
 powershell -Command "(Get-Content module\module.json) -replace '\"version\": \".*\"', '\"version\": \"%new_version%\"' | Set-Content module\module.json"
 
 :: Update package.json files
-powershell -Command "(Get-Content package.json) -replace '\"version\": \".*\"', '\"version\": \"%new_version%\",' | Set-Content package.json"
-powershell -Command "(Get-Content module\package.json) -replace '\"version\": \".*\"', '\"version\": \"%new_version%\",' | Set-Content module\package.json"
+powershell -Command "$content = Get-Content package.json -Raw; $content -replace '\"version\": \"[^\"]+\"', '\"version\": \"%new_version%\"' | Set-Content package.json -NoNewline"
+powershell -Command "$content = Get-Content module\package.json -Raw; $content -replace '\"version\": \"[^\"]+\"', '\"version\": \"%new_version%\"' | Set-Content module\package.json -NoNewline"
 
 echo ✅ Version updated to %new_version%
 echo.
