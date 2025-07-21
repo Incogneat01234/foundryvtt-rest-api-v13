@@ -156,11 +156,16 @@ Hooks.once("init", () => {
 });
 
 // Replace the API key input field with a password field
-Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery) => {
+Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery | HTMLElement) => {
   ModuleLogger.functionEntry('renderSettingsConfig hook');
-  const apiKeyInput = html.find(`input[name="${moduleId}.apiKey"]`);
-  ModuleLogger.debug('API key input field', { found: apiKeyInput.length > 0 });
-  if (apiKeyInput.length) {
+  
+  try {
+    // Ensure html is a jQuery object
+    const $html = html instanceof HTMLElement ? $(html) : html;
+    
+    const apiKeyInput = $html.find(`input[name="${moduleId}.apiKey"]`);
+    ModuleLogger.debug('API key input field', { found: apiKeyInput.length > 0 });
+    if (apiKeyInput.length) {
     // Change the input type to password
     apiKeyInput.attr("type", "password");
 
@@ -185,6 +190,9 @@ Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery) => {
         }).render(true);
       });
     });
+  }
+  } catch (error) {
+    ModuleLogger.error('Error in renderSettingsConfig hook:', error);
   }
   ModuleLogger.functionExit('renderSettingsConfig hook');
 });
