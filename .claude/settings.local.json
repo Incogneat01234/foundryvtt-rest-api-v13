@@ -16,7 +16,8 @@
       "Bash(rm:*)",
       "Bash(cmd /c \"rmdir /s /q node_modules\")",
       "Bash(npm cache clean:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

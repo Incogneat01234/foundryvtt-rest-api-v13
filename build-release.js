@@ -64,11 +64,13 @@ archive.file('./src/module.json', { name: 'module.json' });
 archive.directory('./src/languages/', 'languages');
 
 // Add compiled scripts
-if (fs.existsSync('./dist/scripts')) {
+if (fs.existsSync('./dist/scripts/module.js')) {
+    console.log('  Adding scripts directory');
     archive.directory('./dist/scripts/', 'scripts');
-} else if (fs.existsSync('./dist')) {
-    // Fallback if scripts are directly in dist
-    archive.glob('**/*.js', { cwd: './dist' }, { prefix: 'scripts/' });
+} else {
+    console.error('ERROR: dist/scripts/module.js not found!');
+    console.error('Please run "npm run build" first with CI=true environment variable');
+    process.exit(1);
 }
 
 // Add styles if they exist

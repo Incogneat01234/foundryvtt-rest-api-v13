@@ -7,17 +7,23 @@ const path = require('path');
 console.log('Simple build script for Foundry REST API module\n');
 
 try {
-  // Check if TypeScript compilation already done
-  if (fs.existsSync('./dist/scripts/module.js')) {
-    console.log('✓ TypeScript already compiled');
-  } else {
-    console.log('Running TypeScript compilation...');
-    try {
-      execSync('node node_modules/typescript/lib/tsc.js', { stdio: 'inherit' });
-      console.log('✓ TypeScript compiled');
-    } catch (e) {
-      console.log('TypeScript compilation failed, but continuing...');
+  // Always run TypeScript compilation
+  console.log('Running TypeScript compilation...');
+  try {
+    execSync('node node_modules/typescript/lib/tsc.js', { stdio: 'inherit' });
+    console.log('✓ TypeScript compiled');
+    
+    // Check if the output exists
+    if (!fs.existsSync('./dist/scripts/module.js')) {
+      // Try using npx vite build as fallback
+      console.log('Module.js not found, trying vite build...');
+      const buildEnv = { ...process.env, CI: 'true' };
+      execSync('node node_modules/vite/bin/vite.js build', { stdio: 'inherit', env: buildEnv });
     }
+  } catch (e) {
+    console.log('TypeScript compilation failed, trying vite...');
+    const buildEnv = { ...process.env, CI: 'true' };
+    execSync('node node_modules/vite/bin/vite.js build', { stdio: 'inherit', env: buildEnv });
   }
 
   // Copy static files
