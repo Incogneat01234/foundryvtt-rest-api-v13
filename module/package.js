@@ -50,9 +50,9 @@ archive.on('error', (err) => {
 // Pipe archive data to file
 archive.pipe(output);
 
-// Add files with module directory structure
-archive.file('./module.json', { name: `${moduleId}/module.json` });
-archive.directory('./scripts/', `${moduleId}/scripts`);
+// Add files (flat structure for direct extraction)
+archive.file('./module.json', { name: 'module.json' });
+archive.directory('./scripts/', 'scripts');
 
 // Finalize
 archive.finalize();

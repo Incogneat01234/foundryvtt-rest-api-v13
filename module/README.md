@@ -34,7 +34,7 @@ A dead-simple WebSocket API for Foundry VTT. No authentication, no complex setup
 
 In Foundry's module installer, use:
 ```
-https://raw.githubusercontent.com/yourusername/simple-api/main/module.json
+https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
 ```
 
 ## Usage

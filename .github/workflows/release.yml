@@ -47,9 +47,9 @@ jobs:
           
           ## Installation
           
-          ### Via Manifest URL:
+          ### Via Manifest URL in Foundry VTT:
           ```
-          https://github.com/${{ github.repository }}/releases/latest/download/module.json
+          https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
           ```
           
           ### Manual Installation:

@@ -19,7 +19,7 @@ A dead-simple WebSocket API for Foundry VTT v13 that allows external application
 
 Install directly in Foundry VTT via manifest URL:
 ```
-https://github.com/YOUR_GITHUB_USERNAME/foundryvtt-rest-api-v13/releases/latest/download/module.json
+https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
 ```
 
 Then run the relay server:
@@ -32,7 +32,7 @@ node relay/simple-api-relay.js
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/YOUR_GITHUB_USERNAME/foundryvtt-rest-api-v13.git
+git clone https://github.com/Incogneat01234/foundryvtt-rest-api-v13.git
 cd foundryvtt-rest-api-v13
 npm install
 
@@ -130,7 +130,7 @@ Never expose this API to the internet.
 
 ## 🤝 MCP Integration
 
-Designed to work with [Foundry VTT MCP Server](https://github.com/YOUR_USERNAME/foundry-vtt-13-mcp-server) for AI assistant integration.
+Designed to work with [Foundry VTT MCP Server](https://github.com/Incogneat01234/foundry-vtt-13-mcp-server) for AI assistant integration.
 
 ## 📄 License
 

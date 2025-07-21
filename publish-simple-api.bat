@@ -70,7 +70,7 @@ git push origin main --follow-tags
 if errorlevel 1 (
     echo ❌ Error: Failed to push to GitHub
     echo Make sure you have set up your remote repository:
-    echo   git remote add origin https://github.com/YOUR_USERNAME/foundryvtt-rest-api-v13.git
+    echo   git remote add origin https://github.com/Incogneat01234/foundryvtt-rest-api-v13.git
     pause
     exit /b 1
 )
@@ -81,8 +81,10 @@ echo.
 echo GitHub Actions will now:
 echo 1. Create a new release for tag v%version%
 echo 2. Upload module.json and module.zip as release assets
-echo 3. Make the module available via manifest URL
+echo 3. Make the module available at:
+echo    https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
 echo.
-echo Check your repository's Actions tab for progress.
+echo Check your repository's Actions tab for progress:
+echo https://github.com/Incogneat01234/foundryvtt-rest-api-v13/actions
 echo.
 pause

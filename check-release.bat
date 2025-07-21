@@ -25,7 +25,7 @@ echo Checking git remote...
 git remote -v | find "origin" >nul
 if errorlevel 1 (
     echo ❌ Error: No origin remote found
-    echo Run: git remote add origin https://github.com/YOUR_USERNAME/foundryvtt-rest-api-v13.git
+    echo Run: git remote add origin https://github.com/Incogneat01234/foundryvtt-rest-api-v13.git
     set /a errors+=1
 ) else (
     echo ✅ Git remote configured
