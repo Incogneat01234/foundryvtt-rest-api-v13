@@ -86,14 +86,27 @@ function connectToFoundry() {
           
           if (Array.isArray(data)) {
             const [eventName, eventData] = data;
+            console.log('📦 Socket.IO event:', eventName);
             
             // Handle different event types
             if (eventName === 'module.simple-api') {
+              console.log('✨ Got module.simple-api event!');
               handleFoundryResponse(eventData);
             } else if (eventName === 'userspace-socket-message' && eventData) {
+              console.log('📨 Got userspace-socket-message:', eventData.action);
               // Handle userspace messages
               if (eventData.action === 'module.simple-api' && eventData.data) {
                 handleFoundryResponse(eventData.data);
+              }
+            } else if (eventName === 'template') {
+              // Handle template messages (used by v4)
+              if (Array.isArray(eventData) && eventData.length >= 2) {
+                const [templateId, templateData] = eventData;
+                console.log('🎯 Got template message:', templateId);
+                
+                if (templateId === 'simple-api-response' || templateId === 'simple-api-ready') {
+                  handleFoundryResponse(templateData);
+                }
               }
             }
           }
@@ -128,6 +141,7 @@ function connectToFoundry() {
 // Handle responses from Foundry
 function handleFoundryResponse(data) {
   console.log('📥 Foundry response:', data.responseType || data.type);
+  console.log('🔍 Response details:', JSON.stringify(data).substring(0, 200));
   
   if (data.type === 'api-ready') {
     console.log('✅ Simple API module is ready!');
@@ -138,15 +152,26 @@ function handleFoundryResponse(data) {
   }
   
   // Find the pending request
-  if (data.requestId && pendingRequests.has(data.requestId)) {
-    const { client, originalRequest } = pendingRequests.get(data.requestId);
-    pendingRequests.delete(data.requestId);
+  if (data.requestId) {
+    console.log('🔎 Looking for request ID:', data.requestId);
+    console.log('📋 Pending requests:', Array.from(pendingRequests.keys()));
     
-    // Send response to client
-    client.send(JSON.stringify({
-      ...data,
-      requestId: originalRequest.requestId
-    }));
+    if (pendingRequests.has(data.requestId)) {
+      const { client, originalRequest } = pendingRequests.get(data.requestId);
+      pendingRequests.delete(data.requestId);
+      
+      // Send response to client with original request ID
+      const response = {
+        ...data,
+        requestId: originalRequest.requestId
+      };
+      console.log('📤 Sending to client:', response.type);
+      client.send(JSON.stringify(response));
+    } else {
+      console.log('⚠️ No pending request found for ID:', data.requestId);
+    }
+  } else {
+    console.log('⚠️ Response has no requestId:', data);
   }
 }
 
@@ -166,9 +191,26 @@ function sendToFoundry(request) {
     }
   };
   
-  const message = `42["userspace-socket-message",${JSON.stringify(messageData)}]`;
-  console.log('📤 Sending to Foundry:', request.type);
-  foundryWs.send(message);
+  // Try multiple message formats for compatibility
+  
+  // Format 1: Template message (v4)
+  const templateMessage = `42["template",["simple-api-request",${JSON.stringify(request)}]]`;
+  console.log('📤 Sending template message to Foundry');
+  foundryWs.send(templateMessage);
+  
+  // Format 2: Userspace message (v2/v3)
+  const userspaceMessage = `42["userspace-socket-message",${JSON.stringify(messageData)}]`;
+  setTimeout(() => {
+    console.log('📤 Sending userspace message to Foundry');
+    foundryWs.send(userspaceMessage);
+  }, 50);
+  
+  // Format 3: Direct module message
+  const directMessage = `42["module.simple-api",${JSON.stringify(request)}]`;
+  setTimeout(() => {
+    console.log('📤 Sending direct message to Foundry');
+    foundryWs.send(directMessage);
+  }, 100);
 }
 
 // Notify all clients
