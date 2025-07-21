@@ -118,6 +118,9 @@ See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed configuration options.
 
 ## 📚 API Documentation
 
+- **[API Message Format Guide](API_MESSAGE_FORMAT.md)** - Complete guide to all message types and formats
+- **[API Quick Reference](API_QUICK_REFERENCE.md)** - Quick reference for common operations
+
 ### WebSocket Connection
 
 #### Local Mode (Recommended)
