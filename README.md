@@ -15,19 +15,36 @@ A dead-simple WebSocket API for Foundry VTT v13 that allows external application
 
 ## 📦 Quick Install
 
+### For Module Users (Recommended)
+
+Install directly in Foundry VTT via manifest URL:
+```
+https://github.com/YOUR_GITHUB_USERNAME/foundryvtt-rest-api-v13/releases/latest/download/module.json
+```
+
+Then run the relay server:
 ```bash
-# 1. Install the module
-cd module
 npm install
-npm run package
+node relay/simple-api-relay.js
+```
 
-# 2. Copy to Foundry modules folder and enable in-game
+### For Developers
 
-# 3. Start the relay server
-cd ..
+```bash
+# 1. Clone and install
+git clone https://github.com/YOUR_GITHUB_USERNAME/foundryvtt-rest-api-v13.git
+cd foundryvtt-rest-api-v13
+npm install
+
+# 2. Package the module
+cd module && npm install && npm run package && cd ..
+
+# 3. Copy module to Foundry and enable in-game
+
+# 4. Start the relay server
 node relay/simple-api-relay.js
 
-# 4. Test it works
+# 5. Test it works
 node tests/test-simple-api.js
 ```
 
