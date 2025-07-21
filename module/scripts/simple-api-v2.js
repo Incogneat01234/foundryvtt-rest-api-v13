@@ -1,58 +1,99 @@
 /**
- * Simple API Module for Foundry VTT
+ * Simple API Module for Foundry VTT v2
  * 
- * This module exposes basic CRUD operations via Foundry's built-in socket system
+ * Uses a more robust approach to intercept external socket messages
  */
 
 Hooks.once("init", () => {
-  console.log("Simple API | Initializing");
+  console.log("Simple API v2 | Initializing");
 });
 
 Hooks.once("ready", () => {
-  console.log("Simple API | Ready");
+  console.log("Simple API v2 | Ready");
   
   // Only GM can handle API requests
   if (!game.user.isGM) {
-    console.log("Simple API | Not GM, skipping initialization");
+    console.log("Simple API v2 | Not GM, skipping initialization");
     return;
   }
   
-  console.log("Simple API | Setting up socket listeners...");
+  console.log("Simple API v2 | Setting up message handlers...");
   
-  // Listen for socket messages
+  // Method 1: Standard Foundry socket listener
   game.socket.on("module.simple-api", handleApiRequest);
   
-  // Also intercept raw socket.io messages for external connections
-  if (game.socket._socket && game.socket._socket.onevent) {
-    const originalOnEvent = game.socket._socket.onevent;
-    game.socket._socket.onevent = function(packet) {
-      if (packet && packet.data && Array.isArray(packet.data)) {
+  // Method 2: Intercept Socket.IO manager messages
+  if (game.socket._socket && game.socket._socket._callbacks) {
+    // Hook into the Socket.IO callbacks
+    const callbacks = game.socket._socket._callbacks;
+    
+    // Add handler for userspace-socket-message
+    if (!callbacks['$userspace-socket-message']) {
+      callbacks['$userspace-socket-message'] = [];
+    }
+    callbacks['$userspace-socket-message'].push((data) => {
+      console.log("Simple API v2 | Userspace message:", data);
+      if (data && data.action === "module.simple-api" && data.data) {
+        handleApiRequest(data.data);
+      }
+    });
+    
+    // Add direct handler for module.simple-api
+    if (!callbacks['$module.simple-api']) {
+      callbacks['$module.simple-api'] = [];
+    }
+    callbacks['$module.simple-api'].push((data) => {
+      console.log("Simple API v2 | Direct module message:", data);
+      handleApiRequest(data);
+    });
+  }
+  
+  // Method 3: Override the socket manager's handleMessage
+  if (game.socket._socket && game.socket._socket.manager) {
+    const manager = game.socket._socket.manager;
+    const originalHandlePacket = manager._packet.bind(manager);
+    
+    manager._packet = function(packet) {
+      // Check for our custom messages
+      if (packet && packet.type === 2 && packet.data) {
         const [eventName, eventData] = packet.data;
-        if (eventName === "module.simple-api" && eventData) {
-          console.log("Simple API | Intercepted Socket.IO packet:", eventData);
-          handleApiRequest(eventData);
+        if (eventName === "module.simple-api" || 
+            (eventName === "userspace-socket-message" && eventData?.action === "module.simple-api")) {
+          console.log("Simple API v2 | Intercepted packet:", eventName, eventData);
         }
       }
-      return originalOnEvent.call(this, packet);
+      
+      return originalHandlePacket(packet);
     };
   }
   
-  console.log("Simple API | Ready to receive API requests");
+  console.log("Simple API v2 | Message handlers installed");
+  console.log("Simple API v2 | Socket callbacks:", Object.keys(game.socket._socket._callbacks || {}));
   
-  // Send ready signal  
+  // Send ready signal
   game.socket.emit("module.simple-api", {
     type: "api-ready",
     world: game.world.id,
     system: game.system.id,
     user: game.user.name
   });
+  
+  // Also make a global test function
+  window.testSimpleAPIv2 = () => {
+    console.log("Testing Simple API v2...");
+    const testRequest = { type: "ping", requestId: "manual-test" };
+    console.log("Sending:", testRequest);
+    handleApiRequest(testRequest);
+  };
+  
+  console.log("Simple API v2 | Ready! Test with: testSimpleAPIv2()");
 });
 
 /**
  * Main request handler
  */
 async function handleApiRequest(request) {
-  console.log("Simple API | handleApiRequest:", request);
+  console.log("Simple API v2 | handleApiRequest:", request);
   
   // Only GM processes requests
   if (!game.user.isGM) return;
@@ -160,7 +201,7 @@ async function handleApiRequest(request) {
         };
     }
   } catch (error) {
-    console.error("Simple API | Error handling request:", error);
+    console.error("Simple API v2 | Error handling request:", error);
     response = {
       type: "error", 
       requestId: request.requestId,
@@ -169,8 +210,14 @@ async function handleApiRequest(request) {
   }
   
   // Send response
-  console.log("Simple API | Sending response:", response);
+  console.log("Simple API v2 | Sending response:", response);
   game.socket.emit("module.simple-api", response);
+  
+  // Also try sending via userspace-socket-message
+  game.socket.emit("userspace-socket-message", {
+    action: "module.simple-api",
+    data: response
+  });
 }
 
 // ========== SYSTEM INFO FUNCTIONS ==========

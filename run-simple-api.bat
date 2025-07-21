@@ -21,13 +21,13 @@ timeout /t 1 /nobreak >nul
 REM Install dependencies if needed
 if not exist node_modules\ws (
     echo Installing dependencies...
-    call npm install ws
+    call npm install
 )
 
 echo.
 echo Starting Simple API Relay...
 echo.
 
-node simple-api-relay.js
+node relay\simple-api-relay.js
 
 pause

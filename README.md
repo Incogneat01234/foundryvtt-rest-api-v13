@@ -123,15 +123,15 @@ See [SIMPLE-API-INSTALL.md](SIMPLE-API-INSTALL.md) for complete API reference wi
 - `install.bat` - Install all dependencies
 - `run-simple-api.bat` - Start the relay server
 - `test-simple-api.bat` - Run the test suite
-- `publish-release.bat` - **Publish new versions (with GitHub Actions)**
+- `publish.bat` - **Publish new versions**
 
 ### Publishing a New Version
 
-Run `publish-release.bat` to:
-1. Choose version bump (patch/minor/major)
+Run `publish.bat` to:
+1. Choose version bump or enter custom version
 2. Automatically update all version files
 3. Package the module
-4. Create and push a version tag
+4. Commit, tag, and push to GitHub
 5. GitHub Actions automatically creates the release
 
 The module will be available at:

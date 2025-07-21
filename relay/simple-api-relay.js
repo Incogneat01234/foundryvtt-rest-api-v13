@@ -22,6 +22,7 @@ const pendingRequests = new Map();
 let foundryWs = null;
 let foundryConnected = false;
 let requestCounter = 0;
+let pingInterval = null;
 
 // Create HTTP server for status
 const server = http.createServer((req, res) => {
@@ -63,33 +64,54 @@ function connectToFoundry() {
       console.log('✅ Socket.IO connected');
       
       // Listen for simple-api responses
-      setTimeout(() => {
-        console.log('📡 Listening for simple-api messages');
-      }, 1000);
+      console.log('📡 Listening for simple-api messages');
+      
+      // Start ping interval
+      if (pingInterval) clearInterval(pingInterval);
+      pingInterval = setInterval(() => {
+        if (foundryWs && foundryWs.readyState === WebSocket.OPEN) {
+          foundryWs.send('2'); // Send ping
+        }
+      }, 25000);
     } else if (message.startsWith('42')) {
       // Data message
       try {
         const jsonStart = message.indexOf('[');
         if (jsonStart >= 0) {
-          const [eventName, eventData] = JSON.parse(message.substring(jsonStart));
+          const data = JSON.parse(message.substring(jsonStart));
           
-          // Handle module.simple-api events
-          if (eventName === 'module.simple-api') {
-            handleFoundryResponse(eventData);
+          if (Array.isArray(data)) {
+            const [eventName, eventData] = data;
+            
+            // Handle different event types
+            if (eventName === 'module.simple-api') {
+              handleFoundryResponse(eventData);
+            } else if (eventName === 'userspace-socket-message' && eventData) {
+              // Handle userspace messages
+              if (eventData.action === 'module.simple-api' && eventData.data) {
+                handleFoundryResponse(eventData.data);
+              }
+            }
           }
         }
       } catch (e) {
-        // Ignore parse errors
+        console.log('Parse error:', e.message);
       }
     } else if (message === '3') {
       // Ping
       foundryWs.send('2'); // Pong
+    } else if (message === '2') {
+      // Pong received
     }
   });
   
   foundryWs.on('close', () => {
     console.log('❌ Disconnected from Foundry');
     foundryConnected = false;
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
     // Reconnect after 5 seconds
     setTimeout(connectToFoundry, 5000);
   });
@@ -130,8 +152,10 @@ function sendToFoundry(request) {
     throw new Error('Not connected to Foundry');
   }
   
-  const message = `42["module.simple-api",${JSON.stringify(request)}]`;
+  // Send as a userspace socket message that Foundry will relay
+  const message = `42["userspace-socket-message",{"action":"module.simple-api","data":${JSON.stringify(request)}}]`;
   console.log('📤 Sending to Foundry:', request.type);
+  console.log('📤 Full message:', message);
   foundryWs.send(message);
 }
 
