@@ -1,6 +1,6 @@
 {
   "name": "foundry-rest-api",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A REST API for Foundry VTT",
   "author": "Incogneat01234",
   "license": "MIT",
@@ -18,7 +18,8 @@
     "clean:all": "rimraf dist node_modules package-lock.json",
     "package": "node build-release.js",
     "release": "node create-release.js",
-    "publish": "node publish-release.js"
+    "publish": "node publish-release.js",
+    "local-server": "node local-server.js"
   },
   "devDependencies": {
     "@league-of-foundry-developers/foundry-vtt-types": "^13.346.0-beta.20250720141111",
@@ -37,6 +38,7 @@
   "dependencies": {
     "dotenv": "^16.5.0",
     "file-saver": "^2.0.5",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "ws": "^8.16.0"
   }
 }

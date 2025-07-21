@@ -18,12 +18,12 @@ Hooks.once("init", () => {
   // Register module settings for WebSocket configuration
   ModuleLogger.debug('Registering module settings');
   game.settings.register(moduleId, "wsRelayUrl", {
-    name: "WebSocket Relay URL",
-    hint: "URL for the WebSocket relay server",
+    name: "WebSocket Server URL",
+    hint: "URL for the WebSocket server. For local setup, use ws://localhost:8080",
     scope: "world",
     config: true,
     type: String,
-    default: "wss://foundryvtt-rest-api-relay.fly.dev",
+    default: "ws://localhost:8080",
     requiresReload: true
   });
   
@@ -92,6 +92,46 @@ Hooks.once("init", () => {
   game.settings.register(moduleId, "testConnection", {
     name: "Test Connection",
     hint: "Click the button to test the WebSocket connection to the relay server",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "",
+    requiresReload: false
+  });
+  
+  // Embedded server settings
+  game.settings.register(moduleId, "useEmbeddedServer", {
+    name: "Use Embedded Server",
+    hint: "Run a WebSocket server directly within Foundry instead of connecting to an external server",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true
+  });
+  
+  game.settings.register(moduleId, "embeddedServerPort", {
+    name: "Embedded Server Port",
+    hint: "Port for the embedded WebSocket server (default: 8080)",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 8080,
+    requiresReload: true
+  });
+  
+  game.settings.register(moduleId, "embeddedServerStatus", {
+    name: "Embedded Server Status",
+    hint: "Current status of the embedded server",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "stopped"
+  });
+  
+  game.settings.register(moduleId, "embeddedServerControl", {
+    name: "Embedded Server Control",
+    hint: "Start, stop, or restart the embedded WebSocket server",
     scope: "world",
     config: true,
     type: String,
@@ -310,19 +350,146 @@ Hooks.on("renderSettingsConfig", (_: SettingsConfig, html: JQuery | HTMLElement)
         }, 3000);
       });
     }
+    
+    // Add embedded server controls
+    const embeddedServerControl = $html.find(`input[name="${moduleId}.embeddedServerControl"]`);
+    if (embeddedServerControl.length) {
+      const useEmbeddedServer = game.settings.get(moduleId, "useEmbeddedServer") as boolean;
+      const serverStatus = game.settings.get(moduleId, "embeddedServerStatus") as string;
+      
+      // Hide the default input
+      embeddedServerControl.hide();
+      
+      // Create control buttons
+      const controlsHtml = `
+        <div class="embedded-server-controls" style="display: flex; gap: 5px;">
+          <button type="button" class="embedded-server-start" ${serverStatus === 'running' ? 'disabled' : ''}>
+            <i class="fas fa-play"></i> Start
+          </button>
+          <button type="button" class="embedded-server-stop" ${serverStatus === 'stopped' ? 'disabled' : ''}>
+            <i class="fas fa-stop"></i> Stop
+          </button>
+          <button type="button" class="embedded-server-restart" ${serverStatus === 'stopped' ? 'disabled' : ''}>
+            <i class="fas fa-sync"></i> Restart
+          </button>
+          <span class="server-status" style="margin-left: 10px; align-self: center;">
+            Status: <strong>${serverStatus}</strong>
+          </span>
+        </div>
+      `;
+      
+      embeddedServerControl.after(controlsHtml);
+      
+      // Add click handlers
+      $html.find('.embedded-server-start').on('click', async (e) => {
+        e.preventDefault();
+        try {
+          const button = $(e.currentTarget);
+          button.prop('disabled', true);
+          button.html('<i class="fas fa-spinner fa-spin"></i> Starting...');
+          
+          const { startEmbeddedServer } = await import("./network/embeddedServer");
+          await startEmbeddedServer();
+          
+          ui.notifications.info("Embedded server started successfully");
+          
+          // Update status display
+          $html.find('.server-status strong').text('running');
+          $html.find('.embedded-server-start').prop('disabled', true).html('<i class="fas fa-play"></i> Start');
+          $html.find('.embedded-server-stop').prop('disabled', false);
+          $html.find('.embedded-server-restart').prop('disabled', false);
+          
+        } catch (error) {
+          ui.notifications.error(`Failed to start embedded server: ${error.message}`);
+          $(e.currentTarget).prop('disabled', false).html('<i class="fas fa-play"></i> Start');
+        }
+      });
+      
+      $html.find('.embedded-server-stop').on('click', async (e) => {
+        e.preventDefault();
+        try {
+          const button = $(e.currentTarget);
+          button.prop('disabled', true);
+          button.html('<i class="fas fa-spinner fa-spin"></i> Stopping...');
+          
+          const { stopEmbeddedServer } = await import("./network/embeddedServer");
+          await stopEmbeddedServer();
+          
+          ui.notifications.info("Embedded server stopped");
+          
+          // Update status display
+          $html.find('.server-status strong').text('stopped');
+          $html.find('.embedded-server-start').prop('disabled', false);
+          $html.find('.embedded-server-stop').prop('disabled', true).html('<i class="fas fa-stop"></i> Stop');
+          $html.find('.embedded-server-restart').prop('disabled', true);
+          
+        } catch (error) {
+          ui.notifications.error(`Failed to stop embedded server: ${error.message}`);
+          $(e.currentTarget).prop('disabled', false).html('<i class="fas fa-stop"></i> Stop');
+        }
+      });
+      
+      $html.find('.embedded-server-restart').on('click', async (e) => {
+        e.preventDefault();
+        try {
+          const button = $(e.currentTarget);
+          button.prop('disabled', true);
+          button.html('<i class="fas fa-spinner fa-spin"></i> Restarting...');
+          
+          const { restartEmbeddedServer } = await import("./network/embeddedServer");
+          await restartEmbeddedServer();
+          
+          ui.notifications.info("Embedded server restarted successfully");
+          
+          // Ensure buttons are in correct state
+          button.prop('disabled', false).html('<i class="fas fa-sync"></i> Restart');
+          
+        } catch (error) {
+          ui.notifications.error(`Failed to restart embedded server: ${error.message}`);
+          $(e.currentTarget).prop('disabled', false).html('<i class="fas fa-sync"></i> Restart');
+        }
+      });
+      
+      // Show/hide controls based on embedded server setting
+      if (!useEmbeddedServer) {
+        $html.find('.embedded-server-controls').hide();
+      }
+    }
   } catch (error) {
     ModuleLogger.error('Error in renderSettingsConfig hook:', error);
   }
   ModuleLogger.functionExit('renderSettingsConfig hook');
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
   ModuleLogger.functionEntry('ready hook');
-  ModuleLogger.info('Foundry VTT is ready, scheduling WebSocket initialization');
+  ModuleLogger.info('Foundry VTT is ready');
+  
+  // Check if embedded server should be started
+  const useEmbeddedServer = game.settings.get(moduleId, "useEmbeddedServer") as boolean;
+  
+  if (useEmbeddedServer && game.user?.isGM) {
+    ModuleLogger.info('Starting embedded WebSocket server');
+    try {
+      const { startEmbeddedServer } = await import("./network/embeddedServer");
+      await startEmbeddedServer();
+      ModuleLogger.info('Embedded server started successfully');
+      
+      // Update the WebSocket URL to use localhost
+      const port = game.settings.get(moduleId, "embeddedServerPort") as number || 8080;
+      game.settings.set(moduleId, "wsRelayUrl", `ws://localhost:${port}`);
+    } catch (error) {
+      ModuleLogger.error('Failed to start embedded server:', error);
+      ui.notifications.error(`Failed to start embedded server: ${error.message}`);
+    }
+  }
+  
+  // Initialize WebSocket connection
   setTimeout(() => {
     ModuleLogger.debug('WebSocket initialization timer fired');
     initializeWebSocket();
   }, 1000);
+  
   ModuleLogger.functionExit('ready hook');
 });
 
@@ -402,4 +569,23 @@ Hooks.on("createChatMessage", (message: any) => {
   }
   
   ModuleLogger.functionExit('createChatMessage hook');
+});
+
+// Clean up embedded server when the game closes
+window.addEventListener('beforeunload', async () => {
+  ModuleLogger.info('Window closing, cleaning up embedded server');
+  const useEmbeddedServer = game.settings.get(moduleId, "useEmbeddedServer") as boolean;
+  
+  if (useEmbeddedServer) {
+    try {
+      const { getEmbeddedServer } = await import("./network/embeddedServer");
+      const server = getEmbeddedServer();
+      if (server.isActive()) {
+        await server.stop();
+        ModuleLogger.info('Embedded server stopped on window close');
+      }
+    } catch (error) {
+      ModuleLogger.error('Error stopping embedded server on close:', error);
+    }
+  }
 });

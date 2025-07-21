@@ -10,6 +10,7 @@ A comprehensive REST API module for Foundry VTT v13 that enables external applic
 
 - **Full Foundry v13 Compatibility** - Updated to work with the latest Foundry VTT v13 API changes
 - **WebSocket-Based Communication** - Real-time bidirectional communication with your Foundry world
+- **Local-Only Mode** - Run entirely on your local network without external dependencies
 - **Comprehensive API Coverage** - Access to entities, combat, dice rolling, file management, and more
 - **Enhanced Security** - API key authentication with show/hide toggle and connection testing
 - **Developer-Friendly** - Extensive debug logging, TypeScript support, and detailed documentation
@@ -19,6 +20,7 @@ A comprehensive REST API module for Foundry VTT v13 that enables external applic
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Local Setup](#local-setup)
 - [API Documentation](#api-documentation)
 - [Available Endpoints](#available-endpoints)
 - [Configuration](#configuration)
@@ -80,21 +82,50 @@ npm run install:unix:dev     # For macOS/Linux
    - Click **Test Connection** to verify WebSocket connectivity
 
 3. **Connect Your Application**
-   - Default WebSocket URL: `wss://foundryvtt-rest-api-relay.fly.dev`
+   - Default WebSocket URL: `ws://localhost:8080` (local mode)
+   - Alternative relay URL: `wss://foundryvtt-rest-api-relay.fly.dev`
    - Use your API key for authentication
    - See the [API Test Collection](https://github.com/ThreeHats/foundryvtt-rest-api-relay/blob/main/Foundry%20REST%20API%20Documentation.postman_collection.json) for examples
+
+## 🏠 Local Setup
+
+The module now supports running entirely locally without external dependencies. This provides better privacy, security, and control.
+
+### Quick Start with Embedded Server Mode
+
+1. **Enable Embedded Server in Foundry**
+   - Go to Module Settings
+   - Enable "Use Embedded Server"
+   - Save and reload
+
+2. **Start the Local Server**
+   - **Windows**: Double-click `start-local-server.bat`
+   - **macOS/Linux**: Run `./start-local-server.sh`
+   - **Manual**: Run `npm run local-server`
+
+The module will automatically connect to the local server. No additional configuration needed!
+
+### Benefits of Local Mode
+
+- No external network dependencies
+- Full control over the server
+- Lower latency
+- Enhanced privacy and security
+- Easier development and debugging
+- Simple one-click startup
+
+See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed configuration options.
 
 ## 📚 API Documentation
 
 ### WebSocket Connection
 
-Connect to the WebSocket relay server with your API key:
-
+#### Local Mode (Recommended)
 ```javascript
-const ws = new WebSocket('wss://foundryvtt-rest-api-relay.fly.dev?id=your-world-id&token=your-api-key');
+const ws = new WebSocket('ws://localhost:8080?id=your-client-id&token=optional-token');
 
 ws.on('open', () => {
-  console.log('Connected to Foundry!');
+  console.log('Connected to local Foundry server!');
   
   // Send a test ping
   ws.send(JSON.stringify({
@@ -102,7 +133,26 @@ ws.on('open', () => {
     requestId: 'test-1'
   }));
 });
+```
 
+#### Relay Mode
+```javascript
+const ws = new WebSocket('wss://foundryvtt-rest-api-relay.fly.dev?id=your-world-id&token=your-api-key');
+
+ws.on('open', () => {
+  console.log('Connected to Foundry relay!');
+  
+  // Send a test ping
+  ws.send(JSON.stringify({
+    type: 'ping',
+    requestId: 'test-1'
+  }));
+});
+```
+
+Both modes use the same message format:
+
+```javascript
 ws.on('message', (data) => {
   const response = JSON.parse(data);
   console.log('Received:', response);
