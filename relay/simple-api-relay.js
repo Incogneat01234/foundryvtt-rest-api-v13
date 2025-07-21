@@ -245,19 +245,19 @@ wss.on('connection', (ws) => {
       const data = JSON.parse(message.toString());
       console.log(`📤 Client request: ${data.type}`);
       
-      // Generate unique request ID for tracking
-      const relayRequestId = `relay-${++requestCounter}`;
+      // Use the client's request ID for tracking
+      const requestId = data.requestId || `relay-${++requestCounter}`;
       
-      // Store pending request
-      pendingRequests.set(relayRequestId, {
+      // Store pending request using the SAME ID that will come back
+      pendingRequests.set(requestId, {
         client: ws,
         originalRequest: data
       });
       
-      // Forward to Foundry with our request ID
+      // Forward to Foundry keeping the same request ID
       const foundryRequest = {
         ...data,
-        requestId: relayRequestId
+        requestId: requestId
       };
       
       try {

@@ -141,7 +141,7 @@ function sendResponse(response) {
   if (response.type === "ping-response") {
     ChatMessage.create({
       content: `Simple API: Ping received (${response.requestId})`,
-      type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+      style: CONST.CHAT_MESSAGE_STYLES.OTHER,
       whisper: [game.user.id]
     });
   }
@@ -273,7 +273,7 @@ async function handleApiRequest(request) {
       case "send-chat":
         const chatData = {
           content: request.message,
-          type: request.chatType || CONST.CHAT_MESSAGE_TYPES.OTHER
+          style: request.chatStyle || CONST.CHAT_MESSAGE_STYLES.OTHER
         };
         
         if (request.speaker) {
