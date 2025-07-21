@@ -1,0 +1,8 @@
+# This workflow is disabled because it requires Vite build configuration
+# that isn't present in this project. Use simple-release.yml instead.
+#
+# To re-enable:
+# 1. Add vite as a dependency
+# 2. Create vite.config.js
+# 3. Add "build": "vite build" to package.json scripts
+# 4. Rename this file back to publish.yml

@@ -3,20 +3,16 @@ name: Release Simple API
 on:
   push:
     tags:
-      - '*.*.*'  # Triggers on tags like 1.0.0, 2.1.3, etc.
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., 1.0.2)'
-        required: true
-        type: string
+      - '[0-9]+.[0-9]+.[0-9]+'  # Matches 1.0.0, 2.1.3, etc.
+      - 'v[0-9]+.[0-9]+.[0-9]+'  # Matches v1.0.0, v2.1.3, etc.
+
+permissions:
+  contents: write
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -26,52 +22,55 @@ jobs:
       with:
         node-version: '18'
         
-    - name: Install dependencies
-      run: |
-        cd module
-        npm install
-        
-    - name: Build package
-      run: |
-        cd module
-        npm run package
-        
     - name: Get version from tag
       id: get_version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      
+      run: |
+        # Remove 'v' prefix if present
+        VERSION=${GITHUB_REF_NAME#v}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Tag version: $VERSION"
+        
+    - name: Install module dependencies
+      working-directory: ./module
+      run: npm install
+        
+    - name: Build package
+      working-directory: ./module
+      run: npm run package
+        
+    - name: Verify files exist
+      run: |
+        echo "Checking for required files..."
+        ls -la module/release/
+        if [ ! -f "module/release/module.json" ]; then
+          echo "ERROR: module.json not found!"
+          exit 1
+        fi
+        if [ ! -f "module/release/module.zip" ]; then
+          echo "ERROR: module.zip not found!"
+          exit 1
+        fi
+        
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
         release_name: Simple API v${{ steps.get_version.outputs.VERSION }}
         body: |
           # Simple API for Foundry VTT v${{ steps.get_version.outputs.VERSION }}
           
           ## Installation
           
-          ### Via Manifest URL in Foundry VTT:
+          Add this URL to Foundry VTT's module installer:
           ```
-          https://github.com/Incogneat01234/foundryvtt-rest-api-v13/releases/latest/download/module.json
+          https://github.com/${{ github.repository }}/releases/latest/download/module.json
           ```
-          
-          ### Manual Installation:
-          1. Download `module.zip` from the assets below
-          2. Extract to your Foundry modules folder
-          3. Enable "Simple API" in your world
           
           ## What's Changed
-          See [commit history](https://github.com/${{ github.repository }}/commits/v${{ steps.get_version.outputs.VERSION }}) for details.
-          
-          ## Usage
-          1. Enable the module in your Foundry world (requires GM permission)
-          2. Run the relay server: `node relay/simple-api-relay.js`
-          3. Connect to `ws://localhost:8080`
-          
-          See [documentation](https://github.com/${{ github.repository }}) for API reference.
+          See [commit history](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}) for details.
         draft: false
         prerelease: false
         
@@ -94,28 +93,3 @@ jobs:
         asset_path: ./module/release/module.zip
         asset_name: module.zip
         asset_content_type: application/zip
-        
-    - name: Upload versioned zip
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./module/release/simple-api-v${{ steps.get_version.outputs.VERSION }}.zip
-        asset_name: simple-api-v${{ steps.get_version.outputs.VERSION }}.zip
-        asset_content_type: application/zip
-        
-    - name: Upload Source Code
-      run: |
-        # Create a source archive without node_modules
-        tar --exclude='node_modules' --exclude='.git' --exclude='release' -czf source.tar.gz .
-        
-    - name: Upload source archive
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./source.tar.gz
-        asset_name: source.tar.gz
-        asset_content_type: application/gzip
